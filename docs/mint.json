@@ -14,7 +14,7 @@
       "to": "#07C983"
     }
   },
-  "project": "6868235be32324382e3de244",
+  "_comment": "Documentation for VitalMatrix",
   "openapi": "openapi.yaml",
   "api": {
     "baseUrl": "https://vitalmatrix.dev/api",
