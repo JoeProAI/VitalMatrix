@@ -1,0 +1,69 @@
+# NutriLens
+
+NutriLens is an AI-powered camera feature that allows users to scan food items and get instant nutritional information. This feature uses advanced computer vision and machine learning to identify foods and provide accurate nutritional data.
+
+## Current Status
+
+We recently improved the NutriLens component with dark mode styling and fixed several TypeScript errors to ensure better performance and user experience.
+
+## Features
+
+- **Real-time Barcode Scanning**: Quickly scan product barcodes to retrieve nutrition information
+- **AI Food Recognition**: Take a photo of your meal for automatic food identification
+- **Image Upload Support**: Analyze existing food photos from your device
+- **Dark Mode Support**: Comfortable viewing experience in low-light environments
+
+## Technical Implementation
+
+NutriLens is implemented as a React component that uses:
+
+- **Browser Camera API**: For accessing the device camera
+- **ZXing Library**: For barcode detection and processing
+- **Canvas API**: For image capture and processing
+- **Custom AI Models**: For food recognition and nutritional analysis
+
+## Usage
+
+To use NutriLens in your application:
+
+```tsx
+import NutriLensPage from '../features/NutriLens/NutriLensPage';
+
+// In your component
+return (
+  <div>
+    <NutriLensPage />
+  </div>
+);
+```
+
+## Recent Updates
+
+### Dark Mode Styling
+
+We've implemented a comprehensive dark mode styling for NutriLens to enhance usability in low-light conditions. The new styles include:
+
+- Darker background colors with proper contrast
+- Improved text readability in dark environments
+- Subtle UI elements that don't strain the eyes
+- Reduced glare from bright UI elements
+
+### TypeScript Improvements
+
+We've addressed several TypeScript issues in the NutriLens component:
+
+- Fixed state variable declarations and React refs
+- Ensured consistent naming conventions throughout the codebase
+- Improved type safety with proper TypeScript interfaces
+- Fixed function implementations and return types
+
+## Known Issues
+
+There are still a few TypeScript issues being addressed:
+
+1. Implementation of the `analyzeImageFood` function
+2. Type mismatch with `barcodeScannerIntervalRef`
+3. JSX syntax errors around line 1279
+4. Some template literal syntax errors
+
+These issues are currently being fixed to ensure the component builds successfully while maintaining the existing functionality and styling.

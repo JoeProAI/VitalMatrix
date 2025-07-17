@@ -1,0 +1,193 @@
+# Grok AI Integration
+
+VitalMatrix leverages Grok AI's advanced computer vision capabilities for food item detection and identification. This document outlines how Grok AI is integrated into the VitalMatrix platform and how developers can work with this integration.
+
+## Overview
+
+Grok AI provides VitalMatrix with powerful image recognition capabilities specifically tuned for food identification. The integration handles sending images to Grok's API and processing the returned data to identify food items in user-submitted photos.
+
+## Technical Implementation
+
+### Grok Client Service
+
+The integration is implemented through a dedicated service file that encapsulates all Grok-related functionality:
+
+```typescript
+// src/services/grokClient.ts
+
+import axios from 'axios';
+
+interface GrokFoodItem {
+  name: string;
+  confidence: number;
+  boundingBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+interface GrokVisionResponse {
+  foodItems: GrokFoodItem[];
+  processingTimeMs: number;
+}
+
+/**
+ * Analyzes an image using Grok AI to identify food items
+ * @param imageBase64 Base64-encoded image data
+ * @returns Promise resolving to the Grok vision analysis response
+ */
+export async function analyzeImageWithGrok(
+  imageBase64: string
+): Promise<GrokVisionResponse> {
+  try {
+    // Extract base64 data from data URL format if needed
+    const base64Data = imageBase64.split(',')[1] || imageBase64;
+    
+    const response = await axios.post(
+      'https://api.grok.ai/v1/vision/analyze',
+      {
+        image: base64Data,
+        analysis_type: 'food_detection',
+        include_confidence: true,
+        include_bounding_boxes: true
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.GROK_API_KEY}`
+        }
+      }
+    );
+    
+    // Process and transform the response as needed
+    const foodItems = response.data.results.map((item: any) => ({
+      name: item.food_name,
+      confidence: item.confidence,
+      boundingBox: item.bounding_box
+    }));
+    
+    return {
+      foodItems,
+      processingTimeMs: response.data.processing_time_ms
+    };
+  } catch (error) {
+    console.error('Grok API analysis failed:', error);
+    throw new Error(`Grok analysis failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+```
+
+### Integration in the API Layer
+
+The Grok client is integrated into the application's API layer, specifically in the food analysis endpoint:
+
+```typescript
+// src/pages/api/ai-analyze-food.ts (excerpt)
+import { analyzeImageWithGrok } from '../../services/grokClient';
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const { image } = req.body;
+    
+    // Step 1: Analyze image with Grok to identify food items
+    console.log('Calling Grok API for vision analysis');
+    let grokResponse;
+    try {
+      grokResponse = await analyzeImageWithGrok(image);
+      console.log('Grok analysis complete, identified food items:', grokResponse.foodItems.length);
+    } catch (grokError: any) {
+      console.error('Grok analysis failed:', grokError);
+      return res.status(500).json({ error: `Grok analysis failed: ${grokError.message || String(grokError)}` });
+    }
+    
+    if (!grokResponse.foodItems || grokResponse.foodItems.length === 0) {
+      return res.status(400).json({ error: 'No food items detected in the image' });
+    }
+    
+    // Continue with Modal API for nutritional analysis...
+  }
+}
+```
+
+## Configuration
+
+### Environment Variables
+
+The Grok integration requires the following environment variable:
+
+```
+GROK_API_KEY=your_grok_api_key_here
+```
+
+This should be added to your `.env.local` file and any deployment environments.
+
+### API Rate Limits
+
+Grok API has the following rate limits that developers should be aware of:
+
+- 100 requests per minute
+- 5,000 requests per day
+- Maximum image size: 10MB
+
+Implement appropriate error handling and retry logic to account for rate limiting.
+
+## Error Handling
+
+The Grok integration includes robust error handling:
+
+1. **API Connection Issues**: Network errors are captured and reported with appropriate context
+2. **Authentication Errors**: Missing or invalid API keys trigger clear error messages
+3. **Parsing Errors**: Unexpected response formats are handled gracefully
+4. **Rate Limiting**: 429 responses trigger exponential backoff
+
+## Performance Optimization
+
+To optimize performance when using Grok AI:
+
+1. **Image Compression**: Compress images before sending to reduce bandwidth and processing time
+2. **Result Caching**: Cache results for identical or similar images to reduce API calls
+3. **Concurrent Processing**: Process multiple images in parallel when needed
+
+## Testing
+
+### Mock Responses
+
+For testing purposes, you can use the following mock implementation:
+
+```typescript
+// mockGrokClient.ts
+export async function mockAnalyzeImageWithGrok(imageBase64: string) {
+  return {
+    foodItems: [
+      {
+        name: "Apple",
+        confidence: 0.95,
+        boundingBox: { x: 10, y: 10, width: 200, height: 200 }
+      },
+      {
+        name: "Banana",
+        confidence: 0.87,
+        boundingBox: { x: 220, y: 10, width: 180, height: 190 }
+      }
+    ],
+    processingTimeMs: 450
+  };
+}
+```
+
+### Integration Tests
+
+Integration tests should verify:
+
+1. Proper handling of API responses
+2. Error handling for various failure scenarios
+3. Correct parsing of food item data
+
+## Future Enhancements
+
+1. **Multi-object Detection**: Improved handling of multiple food items in a single image
+2. **Custom Training**: Domain-specific training for better recognition of regional foods
+3. **Confidence Thresholds**: Configurable confidence thresholds for different use cases
+4. **On-device Processing**: Exploring options for on-device processing to reduce API dependence

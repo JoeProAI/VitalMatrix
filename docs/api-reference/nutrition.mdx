@@ -1,0 +1,331 @@
+# Nutrition API
+
+The VitalMatrix Nutrition API provides endpoints for accessing nutritional data, analyzing food items, and managing dietary information.
+
+## Base URL
+
+```
+https://api.vitalmatrix.dev/v1/nutrition
+```
+
+## Authentication
+
+All endpoints require authentication using a bearer token:
+
+```
+Authorization: Bearer {your_access_token}
+```
+
+## Food Database Endpoints
+
+### Search Foods
+
+```
+GET /foods/search
+```
+
+Search the food database by name, brand, or category.
+
+#### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `query` | string | Search term |
+| `limit` | number | Maximum number of results (default: 20) |
+| `offset` | number | Pagination offset (default: 0) |
+| `category` | string | Filter by food category |
+| `brand` | string | Filter by brand name |
+
+#### Response
+
+```json
+{
+  "results": [
+    {
+      "id": "food_123456",
+      "name": "Greek Yogurt",
+      "brand": "Nature's Best",
+      "category": "Dairy",
+      "servingSize": {
+        "value": 100,
+        "unit": "g"
+      },
+      "nutrients": {
+        "calories": 59,
+        "protein": 10.2,
+        "carbs": 3.6,
+        "fat": 0.4
+      }
+    }
+  ],
+  "total": 142,
+  "limit": 20,
+  "offset": 0
+}
+```
+
+### Get Food by ID
+
+```
+GET /foods/{foodId}
+```
+
+Retrieve detailed nutritional information for a specific food item.
+
+#### Response
+
+```json
+{
+  "id": "food_123456",
+  "name": "Greek Yogurt",
+  "brand": "Nature's Best",
+  "category": "Dairy",
+  "servingSizes": [
+    {
+      "value": 100,
+      "unit": "g",
+      "label": "100g container"
+    },
+    {
+      "value": 170,
+      "unit": "g",
+      "label": "Regular container"
+    }
+  ],
+  "nutrients": {
+    "calories": 59,
+    "protein": 10.2,
+    "carbs": 3.6,
+    "fat": 0.4,
+    "fiber": 0,
+    "sugar": 3.2,
+    "sodium": 36,
+    "cholesterol": 5,
+    "potassium": 141,
+    "calcium": 110,
+    "vitaminA": 14,
+    "vitaminC": 0,
+    "iron": 0
+  },
+  "allergens": ["milk"],
+  "dietaryFlags": {
+    "vegetarian": true,
+    "vegan": false,
+    "glutenFree": true
+  },
+  "source": "USDA",
+  "verified": true,
+  "updatedAt": "2025-01-15T12:00:00Z"
+}
+```
+
+### Get Food by Barcode
+
+```
+GET /foods/barcode/{barcode}
+```
+
+Look up a food product by its barcode.
+
+#### Response
+
+Same as Get Food by ID.
+
+## Analysis Endpoints
+
+### Analyze Recipe
+
+```
+POST /analyze/recipe
+```
+
+Analyze the nutritional content of a recipe based on ingredients.
+
+#### Request Body
+
+```json
+{
+  "name": "Protein Smoothie",
+  "servings": 1,
+  "ingredients": [
+    {
+      "foodId": "food_123456",
+      "amount": 170,
+      "unit": "g"
+    },
+    {
+      "foodId": "food_789012",
+      "amount": 1,
+      "unit": "medium"
+    }
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "name": "Protein Smoothie",
+  "servings": 1,
+  "totalWeight": 245,
+  "nutrients": {
+    "calories": 210,
+    "protein": 15.4,
+    "carbs": 32.1,
+    "fat": 2.8
+    // Additional nutrients...
+  },
+  "ingredients": [
+    {
+      "foodId": "food_123456",
+      "name": "Greek Yogurt",
+      "amount": 170,
+      "unit": "g",
+      "nutrients": {
+        // Nutrient contribution from this ingredient
+      }
+    },
+    // Additional ingredients...
+  ]
+}
+```
+
+### Analyze Image
+
+```
+POST /analyze/image
+```
+
+Analyze an image to identify food items and their nutritional content.
+
+#### Request Body
+
+```
+Content-Type: multipart/form-data
+```
+
+Form parameters:
+- `image`: Image file (JPEG, PNG)
+- `includeRecognitionDetails` (optional): Boolean, include AI confidence scores
+
+#### Response
+
+```json
+{
+  "recognizedItems": [
+    {
+      "foodId": "food_123456",
+      "name": "Greek Yogurt",
+      "confidence": 0.94,
+      "boundingBox": {
+        "x": 45,
+        "y": 78,
+        "width": 120,
+        "height": 150
+      },
+      "nutrients": {
+        // Nutritional information
+      }
+    }
+  ],
+  "totalNutrients": {
+    "calories": 210,
+    "protein": 15.4
+    // Additional nutrients...
+  },
+  "processingTime": 1.24,
+  "imageId": "img_567890"
+}
+```
+
+## User Dietary Endpoints
+
+### Get User Dietary Profile
+
+```
+GET /user/dietary-profile
+```
+
+Retrieve the user's dietary preferences and restrictions.
+
+#### Response
+
+```json
+{
+  "dietaryPreferences": ["low-carb", "high-protein"],
+  "restrictions": ["lactose-free"],
+  "allergens": ["peanuts", "shellfish"],
+  "avoidedIngredients": ["artificial sweeteners"],
+  "dailyGoals": {
+    "calories": 2000,
+    "protein": 120,
+    "carbs": 150,
+    "fat": 65
+  },
+  "updatedAt": "2025-06-15T12:00:00Z"
+}
+```
+
+### Update User Dietary Profile
+
+```
+PUT /user/dietary-profile
+```
+
+Update the user's dietary preferences and restrictions.
+
+#### Request Body
+
+```json
+{
+  "dietaryPreferences": ["low-carb", "high-protein"],
+  "restrictions": ["lactose-free"],
+  "allergens": ["peanuts", "shellfish"],
+  "avoidedIngredients": ["artificial sweeteners"],
+  "dailyGoals": {
+    "calories": 2000,
+    "protein": 120,
+    "carbs": 150,
+    "fat": 65
+  }
+}
+```
+
+#### Response
+
+```json
+{
+  "message": "Dietary profile updated successfully",
+  "updatedAt": "2025-07-17T08:45:12Z"
+}
+```
+
+## Implementation Example
+
+```typescript
+import { createClient } from '@vitalmatrix/api-client';
+
+const client = createClient({
+  apiKey: 'your_api_key'
+});
+
+// Search for foods
+const results = await client.nutrition.searchFoods({
+  query: 'greek yogurt',
+  limit: 10
+});
+
+// Analyze a recipe
+const analysis = await client.nutrition.analyzeRecipe({
+  name: 'Protein Smoothie',
+  servings: 1,
+  ingredients: [
+    {
+      foodId: 'food_123456',
+      amount: 170,
+      unit: 'g'
+    }
+  ]
+});
+```

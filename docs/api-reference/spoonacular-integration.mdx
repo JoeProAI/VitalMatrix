@@ -1,0 +1,420 @@
+# Spoonacular API Integration
+
+VitalMatrix integrates with the Spoonacular API to enhance and verify nutritional data obtained through AI analysis. This document outlines how the Spoonacular integration is implemented and how to work with it effectively.
+
+## Overview
+
+Spoonacular is a comprehensive food and recipe API that provides detailed nutritional information for thousands of food products and ingredients. In VitalMatrix, the Spoonacular API serves as:
+
+1. A verification source for AI-analyzed nutritional data
+2. A fallback data source when AI analysis is inconclusive
+3. An enrichment source for additional food details
+
+## API Endpoints
+
+VitalMatrix uses the following Spoonacular API endpoints, wrapped in our own API routes:
+
+### Food Information by ID
+
+```
+GET /api/spoonacular/food/{id}
+```
+
+Retrieves detailed information about a specific food item by its Spoonacular ID.
+
+### Food Search
+
+```
+GET /api/spoonacular/search?query={query}
+```
+
+Searches for food items matching the provided query.
+
+### Recipe Information
+
+```
+GET /api/spoonacular/recipe/{id}
+```
+
+Retrieves detailed information about a recipe, including ingredients and nutritional breakdown.
+
+## Implementation
+
+### API Route Implementation
+
+The Spoonacular integration is implemented as Next.js API routes:
+
+```typescript
+// src/pages/api/spoonacular/food/[id].ts
+import type { NextApiRequest, NextApiResponse } from 'next';
+import axios from 'axios';
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const { id } = req.query;
+  
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ error: 'Invalid food ID' });
+  }
+  
+  try {
+    const response = await axios.get(
+      `https://api.spoonacular.com/food/ingredients/${id}/information`, {
+        params: {
+          apiKey: process.env.SPOONACULAR_API_KEY,
+          amount: 100,
+          unit: 'grams'
+        }
+      }
+    );
+    
+    return res.status(200).json(response.data);
+  } catch (error) {
+    console.error('Spoonacular API error:', error);
+    return res.status(error.response?.status || 500).json({ 
+      error: error.response?.data?.message || 'Failed to fetch food information'
+    });
+  }
+}
+```
+
+### Service Layer
+
+A dedicated service module handles communication with the Spoonacular API:
+
+```typescript
+// src/services/spoonacularService.ts
+import axios from 'axios';
+
+const API_BASE_URL = 'https://api.spoonacular.com';
+const API_KEY = process.env.SPOONACULAR_API_KEY;
+
+export interface SpoonacularNutrient {
+  name: string;
+  amount: number;
+  unit: string;
+  percentOfDailyNeeds: number;
+}
+
+export interface SpoonacularNutritionData {
+  calories: number;
+  fat: string;
+  protein: string;
+  carbs: string;
+  nutrients: SpoonacularNutrient[];
+}
+
+export async function getFoodInformation(foodId: string): Promise<any> {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/food/ingredients/${foodId}/information`, {
+        params: {
+          apiKey: API_KEY,
+          amount: 100,
+          unit: 'grams'
+        }
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Spoonacular API error:', error);
+    throw new Error(`Failed to fetch food information: ${error.message}`);
+  }
+}
+
+export async function searchFood(query: string, limit = 10): Promise<any> {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/food/ingredients/search`, {
+        params: {
+          apiKey: API_KEY,
+          query,
+          number: limit,
+          metaInformation: true
+        }
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Spoonacular API error:', error);
+    throw new Error(`Failed to search for food: ${error.message}`);
+  }
+}
+
+export async function getRecipeInformation(recipeId: string): Promise<any> {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/recipes/${recipeId}/information`, {
+        params: {
+          apiKey: API_KEY,
+          includeNutrition: true
+        }
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Spoonacular API error:', error);
+    throw new Error(`Failed to fetch recipe information: ${error.message}`);
+  }
+}
+```
+
+### Integration with AI Analysis
+
+The Spoonacular API is used to verify and enhance AI-analyzed food data:
+
+```typescript
+async function validateAndEnrichNutritionalData(
+  foodItems: FoodItemWithNutrition[]
+): Promise<FoodItemWithNutrition[]> {
+  return Promise.all(
+    foodItems.map(async (item) => {
+      try {
+        // Search for the food item in Spoonacular
+        const searchResult = await searchFood(item.name, 1);
+        
+        if (searchResult.results && searchResult.results.length > 0) {
+          const foodId = searchResult.results[0].id;
+          const foodInfo = await getFoodInformation(foodId);
+          
+          // Combine AI analysis with Spoonacular data
+          return {
+            ...item,
+            nutrition: {
+              ...item.nutrition,
+              // Add or update nutritional data from Spoonacular
+              vitamins: foodInfo.nutrition?.nutrients
+                .filter(n => isVitamin(n.name))
+                .reduce((acc, n) => ({
+                  ...acc,
+                  [normalizeNutrientName(n.name)]: n.amount
+                }), {}),
+              minerals: foodInfo.nutrition?.nutrients
+                .filter(n => isMineral(n.name))
+                .reduce((acc, n) => ({
+                  ...acc,
+                  [normalizeNutrientName(n.name)]: n.amount
+                }), {})
+            },
+            // Add additional metadata from Spoonacular
+            metadata: {
+              spoonacularId: foodId,
+              imageUrl: foodInfo.image,
+              possibleUnits: foodInfo.possibleUnits
+            }
+          };
+        }
+      } catch (error) {
+        console.warn(`Failed to enrich data for ${item.name}:`, error);
+      }
+      
+      // Return original item if enhancement fails
+      return item;
+    })
+  );
+}
+```
+
+## Configuration
+
+### Environment Variables
+
+The Spoonacular integration requires the following environment variable:
+
+```
+SPOONACULAR_API_KEY=your_spoonacular_api_key_here
+```
+
+Add this to your `.env.local` file and all deployment environments.
+
+### API Limits
+
+Spoonacular API has the following usage limits (depending on your plan):
+
+- Free plan: 150 points per day
+- Basic plan: 1,500 points per day
+- Premium plans: Higher limits available
+
+Each API call consumes a different number of points, detailed in the [Spoonacular documentation](https://spoonacular.com/food-api/docs#Quotas).
+
+## Error Handling
+
+The integration includes comprehensive error handling:
+
+```typescript
+export function handleSpoonacularError(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      // Server responded with a status code outside of 2xx
+      const statusCode = error.response.status;
+      const errorMessage = error.response.data?.message || error.message;
+      
+      switch (statusCode) {
+        case 401:
+          return 'Invalid API key or authentication error';
+        case 402:
+          return 'API quota exceeded. Try again later or upgrade your plan.';
+        case 404:
+          return 'Requested food item not found';
+        case 429:
+          return 'Too many requests. Please try again later.';
+        case 500:
+          return 'Spoonacular service error. Please try again later.';
+        default:
+          return `API error (${statusCode}): ${errorMessage}`;
+      }
+    } else if (error.request) {
+      // Request was made but no response was received
+      return 'No response from Spoonacular API. Please check your connection.';
+    } else {
+      // Error in setting up the request
+      return `Request configuration error: ${error.message}`;
+    }
+  }
+  
+  // Non-Axios error
+  return `Unexpected error: ${error instanceof Error ? error.message : String(error)}`;
+}
+```
+
+## Caching Strategy
+
+To optimize API usage and improve performance, VitalMatrix implements a caching strategy:
+
+```typescript
+// Simple in-memory cache
+const cache = new Map<string, {data: any; timestamp: number}>();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+export async function getCachedFoodInformation(foodId: string): Promise<any> {
+  const cacheKey = `food_${foodId}`;
+  const now = Date.now();
+  
+  // Check if data is in cache and not expired
+  if (cache.has(cacheKey)) {
+    const cacheEntry = cache.get(cacheKey)!;
+    if (now - cacheEntry.timestamp < CACHE_TTL) {
+      return cacheEntry.data;
+    }
+  }
+  
+  // Fetch fresh data
+  const data = await getFoodInformation(foodId);
+  
+  // Update cache
+  cache.set(cacheKey, {
+    data,
+    timestamp: now
+  });
+  
+  return data;
+}
+```
+
+## Usage Examples
+
+### Client-Side Usage
+
+```tsx
+import { useState, useEffect } from 'react';
+
+function FoodDetails({ foodName }) {
+  const [foodData, setFoodData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    async function fetchFoodData() {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `/api/spoonacular/search?query=${encodeURIComponent(foodName)}`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch food data');
+        }
+        
+        const searchData = await response.json();
+        
+        if (searchData.results && searchData.results.length > 0) {
+          const foodId = searchData.results[0].id;
+          const detailsResponse = await fetch(`/api/spoonacular/food/${foodId}`);
+          
+          if (!detailsResponse.ok) {
+            throw new Error('Failed to fetch food details');
+          }
+          
+          const foodDetails = await detailsResponse.json();
+          setFoodData(foodDetails);
+        } else {
+          setError('Food not found');
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    if (foodName) {
+      fetchFoodData();
+    }
+  }, [foodName]);
+  
+  if (loading) return <p>Loading food information...</p>;
+  if (error) return <p>Error: {error}</p>;
+  if (!foodData) return <p>No data available</p>;
+  
+  return (
+    <div className="food-details">
+      <h2>{foodData.name}</h2>
+      <img 
+        src={`https://spoonacular.com/cdn/ingredients_100x100/${foodData.image}`} 
+        alt={foodData.name} 
+      />
+      <h3>Nutrition per 100g</h3>
+      <ul>
+        {foodData.nutrition.nutrients.map(nutrient => (
+          <li key={nutrient.name}>
+            {nutrient.name}: {nutrient.amount}{nutrient.unit}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+## Best Practices
+
+1. **Rate Limiting**: Implement rate limiting to stay within Spoonacular's API quota
+2. **Caching**: Cache API responses to reduce duplicate requests
+3. **Error Handling**: Implement comprehensive error handling with user-friendly messages
+4. **Fallback Mechanism**: Have a fallback mechanism when Spoonacular API is unavailable
+5. **Data Validation**: Always validate data received from the API before using it
+
+## Troubleshooting
+
+### Common Issues and Solutions
+
+| Issue | Possible Cause | Solution |
+|-------|---------------|----------|
+| 402 Payment Required | API quota exceeded | Check your Spoonacular dashboard for quota usage and consider upgrading your plan |
+| 404 Not Found | Food ID doesn't exist | Verify the food ID or use search to find the correct ID |
+| Slow Response Times | Network latency or Spoonacular server load | Implement caching and retry mechanism with exponential backoff |
+| Inconsistent Nutrition Data | Different serving sizes | Normalize nutrition data to a standard serving size (e.g., per 100g) |
+| Search Returns Unexpected Results | Ambiguous food name | Use more specific food names or implement a disambiguation system |
+
+## Future Enhancements
+
+1. **Advanced Caching**: Implement Redis or similar for distributed caching
+2. **Webhook Integration**: Utilize Spoonacular webhooks for real-time data updates
+3. **Batch Processing**: Implement batch API calls for multiple food items
+4. **Custom Food Database**: Build a custom database of commonly accessed foods
+5. **User Contribution**: Allow users to contribute and correct food data

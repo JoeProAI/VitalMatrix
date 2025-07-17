@@ -1,0 +1,56 @@
+# NutriLens Overview
+
+NutriLens is VitalMatrix's flagship AI-powered food scanning feature that provides instant nutritional analysis through barcode scanning and image recognition. This advanced component combines multiple technologies to deliver accurate, real-time food identification and analysis.
+
+## Core Functionality
+
+NutriLens provides three main methods for analyzing food:
+
+1. **Real-time Barcode Scanning**: Leverages ZXing library to scan product barcodes and retrieve nutritional information
+2. **AI-Powered Food Recognition**: Uses dual AI integration (Grok and Modal) to identify food items in photos
+3. **Image Upload**: Analyzes existing food photos from the user's device gallery
+
+## Key Components
+
+The NutriLens feature consists of these specialized components:
+
+- **Camera Interface**: Responsive UI with dark mode support for capturing food images
+- **Barcode Scanner**: ZXing-powered real-time scanner with interval-based processing
+- **Dual AI Analysis**: Integration with both Grok AI (for food identification) and Modal AI (for nutritional analysis)
+- **Canvas Processing**: Efficient image capture and processing using the browser's Canvas API
+- **Error Recovery**: Robust error handling for camera permissions, connectivity issues, and recognition failures
+
+## Technical Implementation
+
+NutriLens is implemented as a comprehensive React component (`NutriLensPage.tsx`) that:
+
+- Uses React refs to manage camera video, canvas, and stream resources
+- Implements efficient interval-based barcode scanning
+- Handles media stream initialization and cleanup
+- Provides debug mode for development and troubleshooting
+- Offers multiple camera selection for devices with multiple cameras
+- Features enhanced dark mode styling with improved contrast and reduced eye strain
+
+## API Integration
+
+NutriLens connects with multiple backend services:
+
+- **`/api/ai-analyze-food`**: Processes images using Grok and Modal AI services
+- **`/api/spoonacular`**: Retrieves detailed nutritional data from the Spoonacular API
+- **Browser MediaDevices API**: Accesses and controls device cameras
+
+## User Experience Features
+
+- **Real-time Scanning Indicator**: Visual feedback during barcode scanning
+- **Camera Selection**: Support for switching between multiple device cameras
+- **Dark Mode Support**: Enhanced visibility in low-light environments
+- **Accessibility Improvements**: High-contrast text and interface elements
+- **Error Handling**: Clear user guidance for permission issues or recognition failures
+
+## Recent Improvements
+
+- TypeScript error fixes for production build stability
+- Improved barcode scanner interval management
+- Enhanced dark mode styling with cache busting
+- Optimized camera initialization and error handling
+- Removed legacy glassmorphism effects for a cleaner, more professional interface

@@ -1,0 +1,194 @@
+# Authentication API
+
+The VitalMatrix Authentication API provides endpoints for user registration, login, and session management.
+
+## Base URL
+
+```
+https://api.vitalmatrix.dev/v1/auth
+```
+
+## Authentication Methods
+
+VitalMatrix supports the following authentication methods:
+
+- JWT-based authentication
+- OAuth 2.0 with supported providers
+- API key authentication for service-to-service calls
+
+## Endpoints
+
+### Register User
+
+```
+POST /register
+```
+
+Create a new user account.
+
+#### Request Body
+
+```json
+{
+  "email": "user@example.com",
+  "password": "securePassword123",
+  "firstName": "John",
+  "lastName": "Doe"
+}
+```
+
+#### Response
+
+```json
+{
+  "userId": "usr_123456789",
+  "email": "user@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "createdAt": "2025-07-17T12:34:56.789Z",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+### Login
+
+```
+POST /login
+```
+
+Authenticate a user and retrieve tokens.
+
+#### Request Body
+
+```json
+{
+  "email": "user@example.com",
+  "password": "securePassword123"
+}
+```
+
+#### Response
+
+```json
+{
+  "userId": "usr_123456789",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 3600
+}
+```
+
+### Refresh Token
+
+```
+POST /refresh
+```
+
+Obtain a new access token using a refresh token.
+
+#### Request Body
+
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+#### Response
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 3600
+}
+```
+
+### Logout
+
+```
+POST /logout
+```
+
+Invalidate the current session.
+
+#### Request Headers
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+#### Response
+
+```json
+{
+  "message": "Successfully logged out"
+}
+```
+
+## OAuth Integration
+
+### Initiate OAuth Flow
+
+```
+GET /oauth/:provider
+```
+
+Start the OAuth authentication flow with a supported provider.
+
+Supported providers:
+- `google`
+- `apple`
+- `facebook`
+
+#### Query Parameters
+
+```
+redirect_uri: URL to redirect after authentication (must be whitelisted)
+```
+
+### OAuth Callback
+
+```
+GET /oauth/callback/:provider
+```
+
+Handle the OAuth callback from the provider.
+
+## Error Responses
+
+Authentication errors return appropriate HTTP status codes with descriptive messages:
+
+```json
+{
+  "error": "invalid_credentials",
+  "message": "The email or password provided is incorrect",
+  "statusCode": 401
+}
+```
+
+Common error codes:
+- `invalid_credentials`: Email or password incorrect
+- `account_locked`: Account temporarily locked due to failed attempts
+- `invalid_token`: Token has expired or is invalid
+- `insufficient_permissions`: User lacks required permissions
+
+## Implementation Example
+
+```typescript
+import { createClient } from '@vitalmatrix/api-client';
+
+const client = createClient({
+  apiKey: 'your_api_key'
+});
+
+// Login
+const { accessToken, refreshToken } = await client.auth.login({
+  email: 'user@example.com',
+  password: 'securePassword123'
+});
+
+// Make authenticated requests
+client.setAuthToken(accessToken);
+const profile = await client.users.getProfile();
+```

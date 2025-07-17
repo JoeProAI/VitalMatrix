@@ -1,0 +1,62 @@
+# Styling Guide
+
+VitalMatrix uses a combination of Tailwind CSS and custom CSS for styling components. This document outlines our styling approach and dark mode implementation.
+
+## CSS Architecture
+
+We follow a hybrid approach to styling:
+
+- **Tailwind CSS**: For utility-based styling of components
+- **Component CSS**: For complex components with specific styling needs
+- **Global CSS**: For app-wide styles and theme definitions
+
+## Dark Mode Implementation
+
+VitalMatrix supports both light and dark modes with a user preference system.
+
+### Dark Mode Strategy
+
+1. **Separate CSS Files**: We maintain dedicated dark mode CSS files (e.g., `nutrilens-dark-v2.css`) for feature-specific styling
+2. **Cache Busting**: Versioned CSS file names ensure style updates are applied without caching issues
+3. **!important Flags**: Used strategically to override default styles in dark mode
+4. **Media Queries**: Support for system preference via `prefers-color-scheme`
+
+### NutriLens Dark Mode
+
+The NutriLens component has received a comprehensive dark mode update:
+
+```css
+/* Example of NutriLens dark mode styling */
+.camera-container {
+  background-color: #121212 !important;
+  border: 1px solid #333 !important;
+}
+
+.scanning-indicator {
+  background-color: rgba(0, 150, 136, 0.7) !important;
+  box-shadow: 0 0 10px rgba(0, 150, 136, 0.5) !important;
+}
+```
+
+### Implementation Details
+
+- **Dynamic Import**: Dark mode CSS is imported in `_app.tsx`
+- **Class-Based Toggle**: Dark mode is toggled via a `dark-mode` class on the root element
+- **CSS Variables**: Theme colors are defined as CSS variables for easy customization
+- **Contrast Checking**: All color combinations are tested for WCAG AA compliance
+
+## Best Practices
+
+1. **Component Isolation**: Keep component styles isolated to prevent leakage
+2. **Responsive Design**: All components should be responsive across devices
+3. **Accessibility**: Maintain proper contrast ratios and focus states
+4. **Consistent Naming**: Follow BEM-inspired naming conventions for custom classes
+5. **Minimal Specificity**: Keep selector specificity as low as possible
+
+## Recent Improvements
+
+- Added separate dark mode CSS file with cache busting
+- Improved contrast ratios for better accessibility
+- Reduced animation effects for better performance
+- Implemented subtle design cues for camera and scanning status
+- Replaced neon/glassmorphism effects with more subtle indicators

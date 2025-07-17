@@ -1,0 +1,108 @@
+# Installation Guide
+
+This guide walks you through setting up VitalMatrix for development or production use.
+
+## Prerequisites
+
+Before installing VitalMatrix, ensure you have the following:
+
+- Node.js 16.x or later
+- npm 7.x or later
+- Git
+- A modern web browser
+
+## Development Setup
+
+Follow these steps to set up VitalMatrix for development:
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/vitalmatrix/vitalmatrix.git
+cd vitalmatrix
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Set Up Environment Variables
+
+Create a `.env.local` file in the root directory with the following variables:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+NEXT_PUBLIC_ENABLE_DEBUG=true
+```
+
+### 4. Start the Development Server
+
+```bash
+npm run dev
+```
+
+Visit `http://localhost:3000` to see the application in action.
+
+## Production Setup
+
+For production deployment, follow these additional steps:
+
+### 1. Build the Application
+
+```bash
+npm run build
+```
+
+### 2. Start the Production Server
+
+```bash
+npm start
+```
+
+## Docker Deployment
+
+VitalMatrix can also be deployed using Docker:
+
+### 1. Build the Docker Image
+
+```bash
+docker build -t vitalmatrix .
+```
+
+### 2. Run the Container
+
+```bash
+docker run -p 3000:3000 vitalmatrix
+```
+
+## Environment Variables
+
+VitalMatrix uses the following environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | API endpoint URL | `http://localhost:3000/api` |
+| `NEXT_PUBLIC_ENABLE_DEBUG` | Enable debug mode | `false` |
+| `DATABASE_URL` | MongoDB connection string | - |
+| `JWT_SECRET` | Secret for JWT authentication | - |
+| `NUTRIAPI_KEY` | API key for nutrition data | - |
+
+## Troubleshooting
+
+If you encounter issues during installation:
+
+1. Verify Node.js and npm versions
+2. Check that all required environment variables are set
+3. Clear npm cache with `npm cache clean --force`
+4. Delete `node_modules` and reinstall dependencies
+5. Ensure ports (3000, 27017) are available
+
+## Next Steps
+
+After installation, check out:
+
+- [Quick Start Guide](./quickstart) for your first steps
+- [Architecture Overview](./technical/architecture) for system understanding
+- [Development Setup](./technical/development/setup) for advanced configuration

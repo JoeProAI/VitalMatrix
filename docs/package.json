@@ -1,0 +1,12 @@
+{
+  "name": "vitalmatrix-docs",
+  "version": "0.1.0",
+  "description": "VitalMatrix Documentation",
+  "scripts": {
+    "dev": "mintlify dev",
+    "build": "mintlify build"
+  },
+  "devDependencies": {
+    "mintlify": "^4.0.0"
+  }
+}

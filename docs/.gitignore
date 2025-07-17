@@ -1,0 +1,6 @@
+.vercel
+node_modules
+.mintlify
+.next
+.DS_Store
+*.log

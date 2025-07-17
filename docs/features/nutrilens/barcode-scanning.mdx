@@ -1,0 +1,95 @@
+# Barcode Scanning
+
+VitalMatrix's NutriLens includes powerful barcode scanning capabilities, leveraging the ZXing library for real-time product identification.
+
+## Implementation Details
+
+The barcode scanning functionality is implemented using the following technologies:
+
+- **ZXing Library**: Both `@zxing/browser` and `@zxing/library` packages are used to enable efficient barcode detection directly in the browser.
+- **Interval-Based Scanning**: The scanner operates at regular intervals to balance performance and accuracy.
+- **Canvas Processing**: Captured frames are processed through an HTML Canvas element for optimal barcode detection.
+
+## Key Features
+
+### Real-time Detection
+
+The barcode scanner processes video frames at regular intervals (typically 500ms) to detect barcodes without impacting performance. When a barcode is detected, the scanning process is temporarily paused to prevent duplicate detections.
+
+```typescript
+// Interval-based barcode scanning
+const startBarcodeScanning = () => {
+  if (scannerRef.current) return;
+  
+  scannerRef.current = setInterval(async () => {
+    if (!videoRef.current || !canvasRef.current || isProcessingRef.current) return;
+    
+    isProcessingRef.current = true;
+    try {
+      const result = await scanBarcode();
+      if (result) {
+        // Process the detected barcode
+        handleBarcodeDetection(result);
+      }
+    } finally {
+      isProcessingRef.current = false;
+    }
+  }, 500);
+};
+```
+
+### Multiple Barcode Formats
+
+The scanner supports various barcode formats commonly found on food products:
+
+- UPC-A and UPC-E (common in North America)
+- EAN-8 and EAN-13 (common internationally)
+- Code 39 and Code 128
+- QR Codes (for custom product information)
+
+### Error Handling
+
+The barcode scanner includes robust error handling to manage various scenarios:
+
+- Poor lighting conditions
+- Blurry or unreadable barcodes
+- Unsupported barcode formats
+
+## Usage
+
+### Camera Positioning
+
+For optimal barcode scanning results:
+
+1. Hold the camera 4-8 inches (10-20cm) from the barcode
+2. Ensure adequate lighting
+3. Align the barcode within the scanning area
+
+### Scanning Process
+
+1. When NutriLens is in scanning mode, point your device's camera at the product barcode
+2. A visual indicator appears when a barcode is detected
+3. Once successfully scanned, the application will search for the product in our database
+4. Nutritional information is displayed once the product is identified
+
+### Handling Unrecognized Products
+
+If a barcode is successfully scanned but the product is not found in our database:
+
+1. The application will display a "Product Not Found" message
+2. Users can contribute by submitting basic product information
+3. AI analysis may provide generic nutritional estimates based on similar products
+
+## Recent Improvements
+
+- **Performance Optimization**: Reduced scanning interval overhead by implementing proper cleanup
+- **Multi-Camera Support**: Added functionality to switch between front and back cameras
+- **Enhanced UI Feedback**: Visual indicators during scanning process
+- **Improved Error Handling**: Better handling of camera permission issues and device compatibility
+
+## Future Enhancements
+
+- Offline barcode database for commonly used products
+- Machine learning optimization for faster barcode detection
+- Support for additional barcode formats
+- Improved handling of damaged or partially visible barcodes

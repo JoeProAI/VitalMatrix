@@ -1,0 +1,88 @@
+# VitalMatrix Architecture
+
+VitalMatrix is built on modern web technologies with a focus on performance, advanced AI capabilities, and excellent user experience in a healthcare context.
+
+## Tech Stack Overview
+
+- **Frontend Framework**: Next.js 14.x with TypeScript 5.8
+- **Styling**: Tailwind CSS with custom CSS extensions and dark mode support
+- **AI Services**: Dual integration with Grok AI and Modal API
+- **Barcode Scanning**: ZXing library (@zxing/browser and @zxing/library)
+- **HTTP Client**: Axios for API communication
+- **UI Components**: Lucide React for iconography
+- **Media Processing**: Browser Canvas API and MediaDevices API
+- **Build Tools**: Vercel deployment with optimized builds
+
+## Project Structure
+
+```
+vitalmatrix/
+├── .next/                 # Next.js build output
+├── .vercel/               # Vercel deployment configuration
+├── docs/                  # Documentation (Mintlify)
+├── src/
+│   ├── components/        # Shared UI components
+│   ├── features/          # Feature-specific modules
+│   │   └── NutriLens/     # NutriLens camera & scanning feature
+│   ├── pages/             # Next.js pages including API routes
+│   │   └── api/           # Backend API endpoints
+│   │       ├── ai-analyze-food.ts    # AI food analysis endpoint
+│   │       └── spoonacular/          # Nutrition data API
+│   ├── services/          # External service integrations
+│   │   ├── grokClient.ts  # Grok AI client
+│   │   └── modalClient.ts # Modal API client
+│   ├── styles/            # Global and component-specific styles
+│   │   └── nutrilens-dark-v2.css     # Dark mode styling
+│   └── utils/             # Utility functions
+├── public/                # Static assets
+└── next.config.js         # Next.js configuration
+```
+
+## Key Components
+
+### NutriLens
+
+The NutriLens feature consists of these key components:
+
+- **NutriLensPage**: Core React component with camera handling and barcode scanning
+- **Barcode Scanner**: Real-time scanning using ZXing with interval-based processing
+- **AI Integration**: Dual AI services for food recognition and nutritional analysis
+- **Dark Mode UI**: Enhanced visual experience with optimized contrast
+
+### API Services
+
+- **AI Analyze Food**: Processes images using Grok for food identification and Modal for nutritional details
+- **Spoonacular Integration**: Retrieves comprehensive nutritional data
+- **Proxy API**: Handles third-party API communication securely
+
+### Data Flow
+
+1. User captures an image through NutriLens or scans a barcode
+2. If a barcode is detected, it's processed locally with ZXing
+3. For food images, the base64-encoded image is sent to the AI analysis endpoint
+4. Grok AI identifies the food items in the image
+5. Modal API provides detailed nutritional analysis
+6. Combined results are returned to the frontend for display
+
+## Performance Optimizations
+
+- **Cache Busting**: Dynamic timestamps for CSS files to ensure fresh styles
+- **Interval-based Scanning**: Efficient barcode detection without performance impact
+- **Lazy Loading**: Components and resources loaded only when needed
+- **Stream Cleanup**: Proper handling of camera streams to prevent memory leaks
+- **Error Boundaries**: Robust error handling for camera and API interactions
+
+## Environment Configuration
+
+VitalMatrix uses these key environment variables:
+
+- `GROK_API_KEY`: For Grok AI vision analysis
+- `MODAL_API_KEY`: For Modal nutritional analysis
+- `SPOONACULAR_API_KEY`: For nutrition database access
+
+## Deployment Strategy
+
+- **Vercel**: Primary deployment platform with serverless functions
+- **API Routes**: Next.js API routes for serverless backend functionality
+- **Environment Segregation**: Separate development and production environments
+- **Build Optimization**: Optimized bundle sizes for faster loading

@@ -1,0 +1,167 @@
+{
+  "name": "VitalMatrix",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373",
+    "anchors": {
+      "from": "#0D9373",
+      "to": "#07C983"
+    }
+  },
+  "project": "6868235be32324382e3de244",
+  "openapi": "openapi.yaml",
+  "api": {
+    "baseUrl": "https://vitalmatrix.dev/api",
+    "auth": {
+      "method": "bearer"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:support@vitalmatrix.dev"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Try VitalMatrix",
+    "url": "https://vitalmatrix.dev/nutrilens"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Changelog",
+      "url": "changelog"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Documentation",
+      "icon": "book-open",
+      "url": "introduction"
+    },
+    {
+      "name": "Community",
+      "icon": "users",
+      "url": "https://discord.gg/vitalmatrix"
+    },
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/vitalmatrix/vitalmatrix"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "installation"
+      ]
+    },
+    {
+      "group": "Core Features",
+      "pages": [
+        {
+          "group": "NutriLens",
+          "pages": [
+            "features/nutrilens/overview",
+            "features/nutrilens/usage",
+            "features/nutrilens/dark-mode",
+            "features/nutrilens/barcode-scanning",
+            "features/nutrilens/ai-analysis"
+          ]
+        },
+        {
+          "group": "Dashboard",
+          "pages": [
+            "features/dashboard/overview"
+          ]
+        },
+        {
+          "group": "Food Database",
+          "pages": [
+            "features/food-database/overview"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "Technical Documentation",
+      "pages": [
+        "technical/architecture",
+        "technical/styling",
+        {
+          "group": "AI Integration",
+          "pages": [
+            "technical/ai-integration/grok",
+            "technical/ai-integration/modal",
+            "technical/ai-integration/image-processing"
+          ]
+        },
+        {
+          "group": "Development",
+          "pages": [
+            "technical/development/setup",
+            "technical/development/code-style",
+            "technical/development/typescript",
+            "technical/development/testing"
+          ]
+        },
+        {
+          "group": "Deployment",
+          "pages": [
+            "technical/deployment/environments",
+            "technical/deployment/vercel",
+            "technical/deployment/ci-cd"
+          ]
+        }
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/authentication",
+        "api-reference/nutrition-endpoints",
+        "api-reference/ai-analyze-food",
+        "api-reference/spoonacular-integration"
+      ]
+    },
+    {
+      "group": "Troubleshooting",
+      "pages": [
+        "troubleshooting/camera-access",
+        "troubleshooting/barcode-scanning",
+        "troubleshooting/ai-analysis"
+      ]
+    },
+    {
+      "group": "Changelog",
+      "pages": [
+        "changelog"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/vitalmatrix/vitalmatrix",
+    "discord": "https://discord.gg/vitalmatrix"
+  },
+  "analytics": {
+    "ga4": {
+      "measurementId": "G-XXXXXXXXXX"
+    }
+  },
+  "feedback": {
+    "suggestEdit": true,
+    "raiseIssue": true
+  }
+}

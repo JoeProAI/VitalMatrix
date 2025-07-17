@@ -1,0 +1,93 @@
+# NutriLens Dark Mode
+
+NutriLens features a comprehensive dark mode implementation that enhances usability in low-light conditions.
+
+## Implementation Overview
+
+Dark mode for NutriLens is implemented using a dedicated CSS file (`nutrilens-dark-v2.css`) that contains specialized styling for low-light environments. This approach offers several advantages:
+
+- Complete separation of dark mode styles from the base component
+- Easy toggling between light and dark themes
+- Optimized contrast and readability in low-light conditions
+- Reduced eye strain for users scanning food at night
+
+## Key Dark Mode Features
+
+Our dark mode implementation focuses on:
+
+1. **Reduced Glare**: Lower brightness and contrast for comfortable viewing in dark environments
+2. **Enhanced Readability**: Optimized text contrast for better legibility
+3. **Subtle Indicators**: Pulsing indicators instead of bright neon effects
+4. **Camera-friendly Design**: UI elements that don't interfere with the camera feed
+5. **Accessibility Improvements**: Higher contrast ratios for text and interactive elements
+
+## CSS Implementation
+
+The dark mode is implemented using a dedicated CSS file that's imported dynamically in `_app.tsx`. Key implementation details include:
+
+```css
+/* Example of dark mode styling */
+.camera-container {
+  background-color: #121212 !important;
+  border: 1px solid #333 !important;
+}
+
+.scanning-indicator {
+  background-color: rgba(0, 150, 136, 0.7) !important;
+  box-shadow: 0 0 10px rgba(0, 150, 136, 0.5) !important;
+}
+```
+
+### CSS Variables
+
+We use CSS variables for consistent theming:
+
+```css
+:root.dark-mode {
+  --nutrilens-bg: #121212;
+  --nutrilens-text: #e0e0e0;
+  --nutrilens-accent: #0D9373;
+  --nutrilens-border: #333;
+  --nutrilens-indicator: rgba(0, 150, 136, 0.7);
+}
+```
+
+## Cache Busting Strategy
+
+To ensure dark mode styles are properly applied without caching issues, we implement:
+
+1. Versioned CSS filenames (e.g., `nutrilens-dark-v2.css`)
+2. Timestamp-based imports in `_app.tsx`
+3. `!important` flags to override any cached styles
+4. Proper style ordering to ensure dark mode takes precedence
+
+## React Implementation
+
+The dark mode is toggled via a context provider in React:
+
+```tsx
+// Example implementation
+const toggleDarkMode = () => {
+  setIsDarkMode(prev => !prev);
+  document.documentElement.classList.toggle('dark-mode');
+};
+```
+
+## Accessibility Considerations
+
+Our dark mode implementation adheres to WCAG AA standards:
+
+- Text contrast ratio of at least 4.5:1
+- Interactive elements with a contrast ratio of at least 3:1
+- Focus indicators that remain visible in dark mode
+- Non-text content with proper contrast ratios
+
+## Testing Dark Mode
+
+To test the dark mode implementation:
+
+1. Toggle dark mode via the UI switch
+2. Verify all components render correctly
+3. Check camera feed visibility and contrast
+4. Confirm scanning indicators are visible but not distracting
+5. Test text readability at different screen sizes

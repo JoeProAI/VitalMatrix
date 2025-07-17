@@ -1,0 +1,165 @@
+# Troubleshooting AI Analysis
+
+This guide helps you troubleshoot common issues with VitalMatrix's AI-powered food analysis features.
+
+## Common Issues and Solutions
+
+### No Food Items Detected
+
+#### Symptoms
+- The app returns "No food items detected" message
+- Analysis completes but doesn't identify any food
+
+#### Possible Causes
+1. **Poor Image Quality**: Blurry, dark, or low-resolution images
+2. **Food Not Visible**: Food items are obscured or too small in the frame
+3. **Unsupported Food Type**: Some regional or uncommon foods may not be recognized
+
+#### Solutions
+1. **Improve Lighting**: Take photos in well-lit environments
+2. **Steady Camera**: Hold the device steady to avoid blurry images
+3. **Optimal Distance**: Position food items 8-12 inches (20-30 cm) from the camera
+4. **Clean Lens**: Ensure your device camera lens is clean
+5. **Multiple Items**: Try photographing one food item at a time if analysis fails with multiple items
+
+### Slow Analysis Response
+
+#### Symptoms
+- Analysis takes more than 5 seconds to complete
+- Loading indicator spins for an extended period
+
+#### Possible Causes
+1. **Network Issues**: Slow or unstable internet connection
+2. **Image Size**: Very large image files being uploaded
+3. **Server Load**: High traffic on the AI analysis services
+
+#### Solutions
+1. **Check Connection**: Verify you have a stable internet connection
+2. **Wi-Fi**: Connect to Wi-Fi instead of using cellular data when possible
+3. **Retry Later**: If server load is high, wait a few minutes and try again
+4. **Smaller Images**: Enable the "Optimize Images" option in settings
+
+### Incorrect Nutritional Information
+
+#### Symptoms
+- Food is correctly identified but nutritional values seem incorrect
+- Calorie counts or macronutrients differ significantly from expectations
+
+#### Possible Causes
+1. **Portion Size Estimation**: AI may not accurately estimate portion sizes
+2. **Similar Foods**: The AI might confuse similar-looking foods
+3. **Regional Variations**: Some foods vary in composition by region
+
+#### Solutions
+1. **Manual Adjustment**: Use the portion adjustment tools to correct quantities
+2. **Food Details**: Tap the food item to view and select from alternative matches
+3. **Feedback**: Use the "Report Inaccuracy" feature to help improve the system
+4. **Manual Entry**: For known foods, use the barcode scanner or manual entry instead
+
+### API Error Messages
+
+#### Symptoms
+- "AI analysis failed" message appears
+- Error codes are displayed instead of results
+
+#### Common Error Codes and Solutions
+
+| Error Code | Meaning | Solution |
+|------------|---------|----------|
+| 400 | Invalid request format | Check that the image format is supported (JPEG, PNG) |
+| 401 | Authentication error | Log out and back in to refresh your session |
+| 413 | Image too large | Use a smaller image or enable automatic image compression |
+| 429 | Too many requests | Wait a few minutes before trying again (rate limit reached) |
+| 500 | Server error | Contact support if the issue persists |
+
+### Camera Access Issues
+
+#### Symptoms
+- "Camera access denied" message
+- Black screen instead of camera feed
+
+#### Solutions
+1. **Check Permissions**: Ensure VitalMatrix has permission to access your camera
+   - **iOS**: Settings > Privacy > Camera > VitalMatrix
+   - **Android**: Settings > Apps > VitalMatrix > Permissions > Camera
+   - **Web**: Click the camera icon in your browser's address bar and allow access
+
+2. **Close Other Apps**: Ensure no other apps are currently using the camera
+3. **Restart App**: Close and reopen VitalMatrix
+4. **Device Restart**: Restart your device if problems persist
+
+## Advanced Troubleshooting
+
+### Clearing Cache
+
+If you're experiencing persistent issues with AI analysis:
+
+1. Go to Settings > Storage
+2. Tap "Clear Cache"
+3. Restart the application
+
+### Debug Mode
+
+For detailed error information:
+
+1. Go to Settings > Advanced
+2. Enable "Debug Mode"
+3. Perform the analysis again
+4. Check the logs in Settings > Advanced > View Logs
+
+### Alternative AI Services
+
+If one AI service is experiencing issues, you can switch to an alternative:
+
+1. Go to Settings > AI Analysis
+2. Under "Service Priority," you can change from "Automatic" to either "Prefer Grok" or "Prefer Modal"
+
+### Network Test
+
+To verify connectivity to our AI services:
+
+1. Go to Settings > Network
+2. Tap "Test AI Services Connection"
+3. The app will check connectivity to all required endpoints
+
+## Reporting Issues
+
+If you continue to experience problems:
+
+1. **Bug Reports**: Send a bug report via Settings > Help > Report a Bug
+2. **Support**: Contact support@vitalmatrix.dev with details about your issue
+3. **Community**: Check the community forums for similar issues and solutions
+
+Include the following information in your report:
+- Device model
+- Operating system version
+- App version
+- Steps to reproduce the issue
+- Any error messages displayed
+- A screenshot of the issue (if possible)
+
+## FAQ
+
+### How large of an image can I upload?
+
+The maximum supported image size is 10MB. Images larger than this will be automatically compressed or rejected.
+
+### Why doesn't the AI recognize my homemade dish?
+
+The AI works best with individual ingredients and common prepared foods. For complex homemade dishes, try photographing individual components or use the manual entry option.
+
+### How accurate is the nutritional information?
+
+AI-powered nutritional analysis is typically 85-90% accurate for common foods. Accuracy may vary for regional specialties, homemade items, or foods with complex ingredients.
+
+### Can I use the AI analysis feature offline?
+
+Currently, AI analysis requires an internet connection as processing is done on our servers. We're working on a limited offline mode for a future update.
+
+### How many analyses can I perform per day?
+
+Free users can perform up to 10 analyses per day. Premium subscribers have unlimited analyses.
+
+### The app shows different nutritional values than food packaging. Why?
+
+Food packaging values are often based on regulatory standards and may differ from our AI analysis. Our system uses a comprehensive database that averages nutritional content from multiple sources.

@@ -1,0 +1,77 @@
+# Using NutriLens
+
+This guide covers how to use the NutriLens feature in your application.
+
+## Component Integration
+
+To integrate NutriLens into your React application:
+
+```tsx
+import NutriLensPage from '../features/NutriLens/NutriLensPage';
+
+// In your component
+return (
+  <div>
+    <NutriLensPage />
+  </div>
+);
+```
+
+## Camera Permissions
+
+NutriLens requires camera permissions to function. The component will automatically request these permissions when initialized. For security reasons, camera access requires:
+
+- HTTPS connection (or localhost for development)
+- User permission grant via browser prompt
+- Compatible device with camera access
+
+## Barcode Scanning
+
+NutriLens includes real-time barcode scanning functionality:
+
+1. The scanning process starts automatically when the camera is active
+2. Position a barcode within the camera view
+3. Hold the barcode steady until it's recognized
+4. View the nutritional information once the barcode is successfully scanned
+
+The component uses interval-based scanning to balance performance and accuracy. The interval is customizable through props.
+
+## Image Capture
+
+To capture and analyze a food image:
+
+1. Position the food item in the center of the camera view
+2. Tap the capture button to take a photo
+3. The image will be analyzed automatically
+4. View the detected food items and their nutritional information
+
+## Image Upload
+
+To analyze an existing image:
+
+1. Tap the upload button to open the file selector
+2. Select an image from your device
+3. The image will be analyzed automatically
+4. View the detected food items and their nutritional information
+
+## Error Handling
+
+NutriLens includes comprehensive error handling for:
+
+- Camera permission denials
+- Device compatibility issues
+- Network connectivity problems
+- Barcode recognition failures
+- Image analysis failures
+
+Error messages are displayed to the user with helpful instructions on how to resolve common issues.
+
+## Debugging Mode
+
+NutriLens includes a debugging mode that can be enabled for development and troubleshooting:
+
+```tsx
+<NutriLensPage debugMode={true} />
+```
+
+When debug mode is active, additional information is displayed on screen and logged to the console.

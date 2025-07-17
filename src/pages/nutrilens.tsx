@@ -1,7 +1,8 @@
 import React from 'react';
 import Head from 'next/head';
-import NutriLensPage from '../features/NutriLens/NutriLensPage';
-import { ScanSearch, Apple, Camera } from 'lucide-react';
+import CleanNutriLensPage from '../features/NutriLens/CleanNutriLensPage';
+import { ScanSearch } from 'lucide-react';
+import '../styles/nutrilens-clean.css';
 
 const NutriLensRoute = () => {
   return (
@@ -13,10 +14,10 @@ const NutriLensRoute = () => {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
       
-      <div className="nutrilens-container">
+      <div className="app-wrapper">
         <header className="app-header">
           <div className="app-logo">
-            <ScanSearch size={28} />
+            <ScanSearch size={24} />
             <span>NutriLens</span>
           </div>
           <div className="header-actions">
@@ -25,12 +26,12 @@ const NutriLensRoute = () => {
         </header>
         
         <main className="main-container">
-          <div className="intro-section mb-6">
-            <h1 className="text-2xl font-bold mb-2">AI-Powered Food Scanner</h1>
-            <p className="text-gray-600">Scan any food item to instantly analyze its nutritional content with our advanced AI technology.</p>
+          <div className="intro-section">
+            <h1 className="text-2xl font-bold mb-2">Food Nutrition Scanner</h1>
+            <p className="text-gray-600">Analyze nutritional content of any food item with our advanced AI technology.</p>
           </div>
           
-          <NutriLensPage />
+          <CleanNutriLensPage />
         </main>
       </div>
     </>

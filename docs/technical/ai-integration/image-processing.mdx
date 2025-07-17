@@ -1,0 +1,395 @@
+# Image Processing
+
+VitalMatrix implements advanced image processing techniques to optimize food images for analysis by AI services. This document details the image capture, processing, and optimization pipeline used within the NutriLens feature.
+
+## Overview
+
+The image processing pipeline in VitalMatrix handles:
+
+1. Camera access and image capture
+2. Image optimization and compression
+3. Canvas-based manipulation and preprocessing
+4. Format conversion for API transmission
+5. Error handling for various device capabilities
+
+## Implementation Details
+
+### Camera Access and Media Stream Handling
+
+VitalMatrix uses the browser's MediaDevices API to access the device camera:
+
+```typescript
+const initializeCamera = async () => {
+  try {
+    // Check for camera permission
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Camera access is not supported in this browser');
+    }
+    
+    // Get available cameras
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    
+    if (videoDevices.length === 0) {
+      throw new Error('No camera detected on this device');
+    }
+    
+    // Store available cameras
+    setCameraDevices(videoDevices);
+    
+    // Set default camera (typically the back camera on mobile devices)
+    const preferredCamera = videoDevices.find(d => 
+      /back|rear|environment/i.test(d.label || '')
+    ) || videoDevices[0];
+    
+    // Access the camera
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: preferredCamera.deviceId ? { exact: preferredCamera.deviceId } : undefined,
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: 'environment'
+      }
+    });
+    
+    // Set up video element with the stream
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+      streamRef.current = stream;
+    }
+    
+    // Start scanning if in scan mode
+    if (mode === 'scan') {
+      startBarcodeScanning();
+    }
+    
+    setCameraActive(true);
+    
+  } catch (error) {
+    console.error('Camera initialization error:', error);
+    setError(`Camera access error: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+```
+
+### Canvas-Based Image Processing
+
+The application uses HTML Canvas for image manipulation and processing:
+
+```typescript
+const captureImage = () => {
+  if (!videoRef.current || !canvasRef.current) {
+    setError('Camera is not properly initialized');
+    return null;
+  }
+  
+  try {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw the current video frame to the canvas
+    const context = canvas.getContext('2d');
+    if (!context) {
+      setError('Could not get canvas context');
+      return null;
+    }
+    
+    // Apply any necessary pre-processing here
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Apply any post-processing effects
+    if (enhanceImage) {
+      applyImageEnhancements(context, canvas.width, canvas.height);
+    }
+    
+    // Convert canvas to base64 data URL
+    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85); // 0.85 quality for compression
+    
+    return imageDataUrl;
+  } catch (error) {
+    console.error('Image capture error:', error);
+    setError(`Failed to capture image: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+};
+```
+
+### Image Optimization Techniques
+
+VitalMatrix employs several techniques to optimize images before sending them to AI services:
+
+#### 1. Resolution Optimization
+
+```typescript
+const optimizeResolution = (canvas: HTMLCanvasElement, maxDimension = 1280) => {
+  const { width, height } = canvas;
+  
+  // Only resize if image exceeds maximum dimensions
+  if (width <= maxDimension && height <= maxDimension) {
+    return canvas;
+  }
+  
+  // Create a new canvas for the resized image
+  const resizedCanvas = document.createElement('canvas');
+  const ctx = resizedCanvas.getContext('2d');
+  
+  if (!ctx) {
+    console.error('Could not get canvas context for resizing');
+    return canvas;
+  }
+  
+  // Calculate new dimensions while maintaining aspect ratio
+  let newWidth, newHeight;
+  
+  if (width > height) {
+    newWidth = maxDimension;
+    newHeight = Math.floor(height * (maxDimension / width));
+  } else {
+    newHeight = maxDimension;
+    newWidth = Math.floor(width * (maxDimension / height));
+  }
+  
+  // Set dimensions and draw resized image
+  resizedCanvas.width = newWidth;
+  resizedCanvas.height = newHeight;
+  ctx.drawImage(canvas, 0, 0, width, height, 0, 0, newWidth, newHeight);
+  
+  return resizedCanvas;
+};
+```
+
+#### 2. Image Enhancement
+
+```typescript
+const applyImageEnhancements = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number
+) => {
+  // Get the current image data
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+  
+  // Apply brightness/contrast adjustments
+  const brightness = 10; // -100 to 100
+  const contrast = 15;   // -100 to 100
+  const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+  
+  for (let i = 0; i < data.length; i += 4) {
+    // Apply brightness
+    data[i] += brightness;     // Red
+    data[i + 1] += brightness; // Green
+    data[i + 2] += brightness; // Blue
+    
+    // Apply contrast
+    data[i] = factor * (data[i] - 128) + 128;
+    data[i + 1] = factor * (data[i + 1] - 128) + 128;
+    data[i + 2] = factor * (data[i + 2] - 128) + 128;
+  }
+  
+  // Put the modified image data back on the canvas
+  ctx.putImageData(imageData, 0, 0);
+};
+```
+
+#### 3. Compression for API Transmission
+
+```typescript
+const prepareImageForUpload = (imageDataUrl: string, quality = 0.85): string => {
+  // For very large images, we might need additional compression
+  if (imageDataUrl.length > MAX_IMAGE_SIZE_BYTES) {
+    const tempCanvas = document.createElement('canvas');
+    const tempImg = new Image();
+    tempImg.src = imageDataUrl;
+    
+    // Wait for image to load
+    return new Promise((resolve) => {
+      tempImg.onload = () => {
+        tempCanvas.width = tempImg.width;
+        tempCanvas.height = tempImg.height;
+        
+        const ctx = tempCanvas.getContext('2d');
+        ctx?.drawImage(tempImg, 0, 0);
+        
+        // Reduce quality until size is acceptable
+        let currentQuality = quality;
+        let compressedDataUrl = tempCanvas.toDataURL('image/jpeg', currentQuality);
+        
+        while (compressedDataUrl.length > MAX_IMAGE_SIZE_BYTES && currentQuality > 0.5) {
+          currentQuality -= 0.05;
+          compressedDataUrl = tempCanvas.toDataURL('image/jpeg', currentQuality);
+        }
+        
+        resolve(compressedDataUrl);
+      };
+    });
+  }
+  
+  // If image is already small enough, return as is
+  return imageDataUrl;
+};
+```
+
+### Base64 Encoding and API Submission
+
+Once an image is captured and processed, it's converted to Base64 format for transmission to AI services:
+
+```typescript
+const analyzeImage = async (imageDataUrl: string) => {
+  setIsLoading(true);
+  setError(null);
+  
+  try {
+    // Prepare optimized image for upload
+    const optimizedImage = await prepareImageForUpload(imageDataUrl);
+    
+    // Send to backend API for AI analysis
+    const response = await fetch('/api/ai-analyze-food', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ image: optimizedImage }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to analyze image');
+    }
+    
+    const analysisResults = await response.json();
+    return analysisResults;
+    
+  } catch (error) {
+    console.error('Analysis error:', error);
+    setError(`Failed to analyze image: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+## Image Processing Considerations
+
+### Memory Management
+
+To prevent memory leaks when working with images and camera streams:
+
+```typescript
+// Cleanup function to release resources
+const cleanupResources = () => {
+  // Stop any active scanning
+  if (scannerRef.current) {
+    clearInterval(scannerRef.current);
+    scannerRef.current = null;
+  }
+  
+  // Stop and release the media stream
+  if (streamRef.current) {
+    const tracks = streamRef.current.getTracks();
+    tracks.forEach(track => track.stop());
+    streamRef.current = null;
+  }
+  
+  // Clear video source
+  if (videoRef.current && videoRef.current.srcObject) {
+    videoRef.current.srcObject = null;
+  }
+  
+  setCameraActive(false);
+};
+
+// Ensure cleanup on component unmount
+useEffect(() => {
+  return () => {
+    cleanupResources();
+  };
+}, []);
+```
+
+### Device Compatibility
+
+The image processing pipeline adapts to different devices and browser capabilities:
+
+```typescript
+const checkDeviceCapabilities = () => {
+  const capabilities = {
+    mediaDevicesSupported: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+    canvasSupported: !!document.createElement('canvas').getContext,
+    webglSupported: !!document.createElement('canvas').getContext('webgl'),
+    serviceWorkerSupported: 'serviceWorker' in navigator
+  };
+  
+  // Determine if device meets minimum requirements
+  const meetsMinimumRequirements = 
+    capabilities.mediaDevicesSupported && 
+    capabilities.canvasSupported;
+  
+  // Enable/disable features based on capabilities
+  setEnhancedProcessingEnabled(capabilities.webglSupported);
+  
+  if (!meetsMinimumRequirements) {
+    setError('Your device does not support all required features for optimal experience');
+  }
+  
+  return capabilities;
+};
+```
+
+## Error Handling
+
+The image processing pipeline includes robust error handling for various scenarios:
+
+```typescript
+const handleImageProcessingError = (stage: string, error: unknown) => {
+  console.error(`Error in ${stage}:`, error);
+  
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  // Map common errors to user-friendly messages
+  const userFriendlyMessage = {
+    'NotAllowedError': 'Camera access was denied. Please enable camera permissions.',
+    'NotFoundError': 'No camera was found on your device.',
+    'NotReadableError': 'Camera is already in use by another application.',
+    'OverconstrainedError': 'No suitable camera was found.',
+    'AbortError': 'Camera access was aborted.',
+    'SecurityError': 'Camera access is restricted due to security policy.',
+    'TypeError': 'Camera configuration error.',
+  }[errorMessage] || `Error during ${stage}: ${errorMessage}`;
+  
+  setError(userFriendlyMessage);
+  
+  // Report the error to analytics
+  reportErrorToAnalytics(stage, errorMessage);
+  
+  return null;
+};
+```
+
+## Performance Considerations
+
+- **Memory Usage**: Canvas operations can be memory intensive; the application implements cleanup to prevent leaks
+- **Processing Time**: Image processing is done with Web Workers when available to avoid UI blocking
+- **Image Size**: Balances quality and size to optimize for both AI accuracy and API transmission speed
+- **Caching**: Previously processed images are cached to avoid redundant processing
+
+## Mobile Optimization
+
+The image processing pipeline is specifically optimized for mobile devices:
+
+- **Orientation Handling**: Automatically adjusts for device orientation
+- **Viewport Scaling**: Ensures proper display across different screen sizes
+- **Battery Optimization**: Camera is activated only when needed
+- **Fallbacks**: Provides alternative workflows when device capabilities are limited
+
+## Future Enhancements
+
+1. **WebAssembly Processing**: Plans to implement WASM-based image processing for improved performance
+2. **Progressive Enhancement**: Layered approach to enable basic functionality on all devices
+3. **Real-time Processing**: Moving toward continuous analysis for video streams
+4. **Offline Processing**: Implementing on-device image processing for offline capability

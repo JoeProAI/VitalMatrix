@@ -1,0 +1,209 @@
+# Code Style Guide
+
+This document outlines the coding conventions and style guidelines for the VitalMatrix project.
+
+## General Principles
+
+- **Readability**: Code should be easy to read and understand
+- **Consistency**: Follow established patterns throughout the codebase
+- **Simplicity**: Prefer simple solutions over complex ones
+- **Documentation**: Document complex logic and public APIs
+
+## TypeScript Guidelines
+
+### Types and Interfaces
+
+- Use interfaces for public API contracts and types for internal structures
+- Export all shared types/interfaces from dedicated files
+- Use descriptive names that explain the purpose
+
+```typescript
+// Good
+interface UserProfile {
+  id: string;
+  displayName: string;
+  preferences: UserPreferences;
+}
+
+// Avoid
+interface UserObj {
+  i: string;
+  name: string;
+  prefs: any;
+}
+```
+
+### Null Handling
+
+- Use optional chaining (`?.`) and nullish coalescing (`??`) operators
+- Avoid explicit null checks when possible
+- Use early returns to reduce nesting
+
+```typescript
+// Good
+const userName = user?.profile?.displayName ?? 'Guest';
+
+// Avoid
+const userName = user && user.profile && user.profile.displayName 
+  ? user.profile.displayName 
+  : 'Guest';
+```
+
+### Type Assertions
+
+- Minimize use of type assertions (`as Type`)
+- Use type guards and discriminated unions when possible
+- Never use `any` unless absolutely necessary
+
+## React Components
+
+### Component Structure
+
+- One component per file (except for small related components)
+- Use functional components with hooks
+- Follow this component structure:
+  1. Imports
+  2. Types/Interfaces
+  3. Component definition
+  4. Helpers and utility functions
+  5. Styled components (if applicable)
+  6. Exports
+
+```tsx
+import React from 'react';
+import { useEffect, useState } from 'react';
+
+interface ComponentProps {
+  title: string;
+}
+
+export const Component: React.FC<ComponentProps> = ({ title }) => {
+  // State and hooks
+  const [isActive, setIsActive] = useState(false);
+  
+  // Effects
+  useEffect(() => {
+    // Effect logic
+  }, []);
+  
+  // Handlers
+  const handleClick = () => {
+    setIsActive(prev => !prev);
+  };
+  
+  // Render
+  return (
+    <div>
+      <h1>{title}</h1>
+      <button onClick={handleClick}>
+        {isActive ? 'Active' : 'Inactive'}
+      </button>
+    </div>
+  );
+};
+```
+
+### Props and State
+
+- Use destructuring for props
+- Keep component state minimal and focused
+- Use custom hooks to share stateful logic
+
+### Naming Conventions
+
+- **Components**: PascalCase (e.g., `UserProfile`)
+- **Files**: Match component name (e.g., `UserProfile.tsx`)
+- **Hooks**: camelCase with `use` prefix (e.g., `useFoodDatabase`)
+- **Event Handlers**: camelCase with `handle` prefix (e.g., `handleSubmit`)
+
+## CSS and Styling
+
+### Tailwind CSS
+
+- Prefer Tailwind utility classes for styling
+- Extract common patterns to components
+- Use consistent spacing and sizing scales
+
+```tsx
+// Good
+<button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded">
+  Submit
+</button>
+
+// Avoid inline styles
+<button style={{ padding: '0.5rem 1rem', backgroundColor: 'blue' }}>
+  Submit
+</button>
+```
+
+### Custom CSS
+
+- Use CSS modules for component-specific styles
+- Follow BEM-inspired naming for custom classes
+- Avoid global styles except for design tokens
+
+## Testing
+
+- Write tests for all new features
+- Follow the Arrange-Act-Assert pattern
+- Test component behavior, not implementation details
+- Mock external dependencies and API calls
+
+```typescript
+describe('UserProfile', () => {
+  it('displays user name when provided', () => {
+    // Arrange
+    const user = { name: 'Test User' };
+    
+    // Act
+    render(<UserProfile user={user} />);
+    
+    // Assert
+    expect(screen.getByText('Test User')).toBeInTheDocument();
+  });
+});
+```
+
+## Documentation
+
+- Add JSDoc comments to public functions and components
+- Include example usage where appropriate
+- Keep comments focused on "why" not "what"
+- Update documentation when changing APIs
+
+```typescript
+/**
+ * Fetches nutritional information for a food item by barcode
+ * 
+ * @param barcode - The product barcode to look up
+ * @returns Promise resolving to nutritional data or null if not found
+ * 
+ * @example
+ * const nutrition = await lookupBarcodeProduct('7392158563921');
+ */
+async function lookupBarcodeProduct(barcode: string): Promise<NutritionData | null> {
+  // Implementation
+}
+```
+
+## Git Workflow
+
+- Write descriptive commit messages in imperative mood
+- Reference issue numbers in commit messages
+- Keep commits focused on single logical changes
+- Rebase feature branches before merging
+
+## Linting and Formatting
+
+All code should pass our automated checks:
+
+```bash
+# Format code
+npm run format
+
+# Lint code
+npm run lint
+
+# Type check
+npm run type-check
+```
