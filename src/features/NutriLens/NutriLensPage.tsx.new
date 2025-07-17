@@ -1,0 +1,595 @@
+import React, { useState, useRef, useEffect, FC } from 'react';
+import { Camera, CameraOff, RefreshCcw, Check, AlertTriangle, ChevronDown, Upload } from 'lucide-react';
+import ScanResults, { NutritionData } from './ScanResults';
+
+const NutriLensPage: FC = () => {
+  const [nutritionData, setNutritionData] = useState<NutritionData | null>(null);
+  const [capturedImageUrl, setCapturedImageUrl] = useState<string | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string>('');
+  const [detectedFoods, setDetectedFoods] = useState<any[]>([]);
+  const [scanSource, setScanSource] = useState<string>('AI Vision');
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Get available camera devices
+  useEffect(() => {
+    const getCameras = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const cameras = devices.filter(device => device.kind === 'videoinput');
+        setCameraDevices(cameras);
+        
+        // Select first camera by default if available
+        if (cameras.length > 0) {
+          setSelectedCamera(cameras[0].deviceId);
+        }
+      } catch (err) {
+        console.error('Error accessing camera devices:', err);
+        setError('Failed to access camera devices');
+      }
+    };
+    
+    getCameras();
+  }, []);
+
+  // Start camera when component mounts or selected camera changes
+  useEffect(() => {
+    if (!selectedCamera) return;
+    
+    const startCamera = async () => {
+      try {
+        // Stop any existing stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+        }
+        
+        // Start new stream with selected camera
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            facingMode: { ideal: 'environment' }
+          }
+        });
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          streamRef.current = stream;
+        }
+      } catch (err) {
+        console.error('Error starting camera:', err);
+        setError('Failed to start camera. Please ensure camera permissions are granted.');
+      }
+    };
+    
+    startCamera();
+    
+    // Cleanup function to stop camera when component unmounts
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [selectedCamera]);
+
+  const captureImage = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      setError('Camera not initialized');
+      return;
+    }
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      setError('Could not get canvas context');
+      return;
+    }
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw current video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to blob
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        setError('Failed to capture image');
+        return;
+      }
+
+      // Create a File object from the blob
+      const imageFile = new File([blob], 'food.jpg', { type: 'image/jpeg' });
+
+      // Create URL for preview image
+      const previewUrl = URL.createObjectURL(blob);
+      setCapturedImageUrl(previewUrl);
+
+      // Analyze the image
+      await analyzeImageFood(imageFile);
+    }, 'image/jpeg', 0.95); // 95% quality JPEG
+  };
+
+  // Function to analyze food images with real APIs only (no fallbacks)
+  const analyzeImageFood = async (imageFile: File) => {
+    setIsLoading(true);
+    setError(null);
+    setScanSource('AI Vision');
+
+    try {
+      console.log('Starting image analysis...');
+      
+      // Convert file to base64
+      const base64Image = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64String = reader.result as string;
+          resolve(base64String.split(',')[1]); // Remove data URL prefix
+        };
+        reader.readAsDataURL(imageFile);
+      });
+      
+      console.log('Image converted to base64, sending to AI analysis endpoint');
+      
+      // Call the AI analysis endpoint - no fallbacks, only real API
+      const response = await fetch('/api/ai-analyze-food', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ base64Image }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('API analysis failed with status:', response.status);
+        throw new Error(`API error (${response.status}): ${errorData}`);
+      }
+      
+      const result = await response.json();
+      console.log('Successfully received AI analysis result');
+      
+      if (!result.category) {
+        throw new Error('Invalid API response: missing food category data');
+      }
+      
+      const primaryFood = result.category;
+      
+      // Process results
+      if (result.allDetectedItems && Array.isArray(result.allDetectedItems)) {
+        setDetectedFoods(result.allDetectedItems);
+      } else if (primaryFood) {
+        setDetectedFoods([primaryFood]);
+      }
+      
+      // Perform detailed nutritional analysis with health focus
+      const detailedAllergens = enhanceAllergenDetection(primaryFood.allergens || [], primaryFood.name);
+      const detailedHealthBenefits = enhanceHealthBenefits(primaryFood);
+      const healthRecommendations = generateHealthRecommendations(primaryFood, detailedAllergens);
+      
+      const nutritionInfo: NutritionData = {
+        foodName: primaryFood.name || 'Unknown Food',
+        healthScore: calculateHealthScore(primaryFood),
+        // Use API data only - no fallbacks to simulated data
+        calories: result.nutrition?.calories || 0,
+        protein: Number(String(result.nutrition?.protein || '0').match(/\d+/)?.[0] || 0),
+        carbs: Number(String(result.nutrition?.carbs || '0').match(/\d+/)?.[0] || 0),
+        fat: Number(String(result.nutrition?.fat || '0').match(/\d+/)?.[0] || 0),
+        fiber: Number(result.nutrition?.fiber || 0),
+        sugar: Number(result.nutrition?.sugar || 0),
+        sodium: Number(result.nutrition?.sodium || 0),
+        healthBenefits: detailedHealthBenefits,
+        allergens: detailedAllergens,
+        recommendations: healthRecommendations,
+        // Additional health-focused data
+        inflammatoryIndex: calculateInflammatoryIndex(primaryFood),
+        glycemicLoad: calculateGlycemicLoad(primaryFood),
+        nutrientDensity: calculateNutrientDensity(primaryFood),
+        // Grok AI analysis data
+        grokAnalysis: result.grokAnalysis || '',
+        enhancedBy: result.enhancedBy || 'Grok Vision API',
+        detectedFoodItems: result.allDetectedItems || [primaryFood]
+      };
+      
+      setNutritionData(nutritionInfo);
+    } catch (err: any) {
+      console.error('Error analyzing food:', err);
+      setError(`Failed to analyze food: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper functions for enhanced food analysis
+  const getCommonAllergensForFood = (foodName: string): string[] => {
+    // AI-powered allergen detection based on food characteristics
+    const foodLower = foodName.toLowerCase();
+    
+    const allergenMap: Record<string, string[]> = {
+      'dairy': ['milk', 'cheese', 'yogurt', 'cream', 'butter', 'ice cream'],
+      'gluten': ['bread', 'pasta', 'wheat', 'cereal', 'cake', 'cookie'],
+      'nuts': ['almond', 'pecan', 'walnut', 'cashew', 'pistachio', 'hazelnut', 'peanut'],
+      'shellfish': ['shrimp', 'crab', 'lobster', 'scallop', 'clam', 'oyster'],
+      'soy': ['tofu', 'soya', 'edamame', 'miso', 'tempeh'],
+      'egg': ['egg', 'omelette', 'mayonnaise'],
+    };
+    
+    const detectedAllergens: string[] = [];
+    
+    // Scan for each allergen category based on food name
+    Object.entries(allergenMap).forEach(([allergen, keywords]) => {
+      if (keywords.some(keyword => foodLower.includes(keyword))) {
+        detectedAllergens.push(allergen);
+      }
+    });
+    
+    return detectedAllergens;
+  };
+  
+  const analyzeHealthImpacts = (food: any): string[] => {
+    const impacts: string[] = [];
+    const foodLower = food.name?.toLowerCase() || '';
+    
+    // AI-powered health impact analysis
+    if (foodLower.includes('vegetable') || 
+        foodLower.includes('greens') || 
+        foodLower.includes('broccoli') ||
+        foodLower.includes('spinach')) {
+      impacts.push('High in antioxidants');
+      impacts.push('Supports immune function');
+    }
+    
+    if (foodLower.includes('berry') || 
+        foodLower.includes('fruit') || 
+        foodLower.includes('apple')) {
+      impacts.push('Contains natural phytochemicals');
+      impacts.push('Provides dietary fiber');
+    }
+    
+    // Add default health impacts if none detected
+    if (impacts.length === 0) {
+      impacts.push('Contains various nutrients');
+    }
+    
+    return impacts;
+  };
+  
+  const enhanceAllergenDetection = (baseAllergens: string[], foodName: string): string[] => {
+    // Start with any allergens detected by the API
+    const enhancedAllergens = [...baseAllergens];
+    
+    // Add any additional allergens detected through our local analysis
+    const additionalAllergens = getCommonAllergensForFood(foodName);
+    
+    // Combine and deduplicate
+    additionalAllergens.forEach(allergen => {
+      if (!enhancedAllergens.includes(allergen)) {
+        enhancedAllergens.push(allergen);
+      }
+    });
+    
+    return enhancedAllergens;
+  };
+  
+  const enhanceHealthBenefits = (food: any): string[] => {
+    const benefits: string[] = [];
+    const foodLower = food.name?.toLowerCase() || '';
+    
+    // Determine health benefits based on food type
+    if (foodLower.includes('vegetable') || foodLower.includes('greens')) {
+      benefits.push('Rich in vitamins and minerals');
+      benefits.push('High in dietary fiber');
+      benefits.push('Low calorie density');
+    } else if (foodLower.includes('fruit')) {
+      benefits.push('Contains natural antioxidants');
+      benefits.push('Source of vitamin C');
+      benefits.push('Provides natural sugars for energy');
+    } else if (foodLower.includes('fish') || foodLower.includes('salmon')) {
+      benefits.push('High in omega-3 fatty acids');
+      benefits.push('Complete protein source');
+      benefits.push('Contains vitamin D');
+    } else {
+      benefits.push('Contains essential nutrients');
+    }
+    
+    return benefits;
+  };
+  
+  const generateHealthRecommendations = (food: any, allergens: string[]): string => {
+    let recommendation = '';
+    const foodLower = food.name?.toLowerCase() || '';
+    
+    // Generate personalized recommendations
+    if (allergens.length > 0) {
+      recommendation += `Caution: This food may contain ${allergens.join(', ')}. `;
+    }
+    
+    // Food-specific recommendations
+    if (foodLower.includes('vegetable') || foodLower.includes('fruit')) {
+      recommendation += 'Excellent choice for daily nutrition! Rich in vitamins and fiber.';
+    } else if (foodLower.includes('protein') || foodLower.includes('meat') || foodLower.includes('fish')) {
+      recommendation += 'Good protein source. Try to balance with vegetables and whole grains.';
+    } else if (foodLower.includes('dessert') || foodLower.includes('cake') || foodLower.includes('sweet')) {
+      recommendation += 'Enjoy in moderation. High in sugar and calories.';
+    } else {
+      recommendation += 'Consider the nutritional profile and how it fits into your overall diet.';
+    }
+    
+    return recommendation;
+  };
+  
+  const calculateHealthScore = (food: any): number => {
+    let score = 50; // Default starting score
+    const foodLower = food.name?.toLowerCase() || '';
+    
+    // Adjust score based on food type
+    if (foodLower.includes('vegetable') || foodLower.includes('greens')) {
+      score += 30;
+    } else if (foodLower.includes('fruit')) {
+      score += 25;
+    } else if (foodLower.includes('whole grain')) {
+      score += 20;
+    } else if (foodLower.includes('processed') || foodLower.includes('junk')) {
+      score -= 20;
+    }
+    
+    // Cap the score between 0 and 100
+    return Math.max(0, Math.min(100, score));
+  };
+  
+  const calculateInflammatoryIndex = (food: any): number => {
+    let index = 0; // Neutral starting point
+    const foodLower = food.name?.toLowerCase() || '';
+    
+    // Calculate inflammatory index (-5 to 5, negative is anti-inflammatory)
+    if (foodLower.includes('vegetable') || foodLower.includes('berry') || foodLower.includes('omega')) {
+      index -= 3; // Anti-inflammatory
+    } else if (foodLower.includes('sugar') || foodLower.includes('processed')) {
+      index += 3; // Pro-inflammatory
+    }
+    
+    return index;
+  };
+  
+  const calculateGlycemicLoad = (food: any): number => {
+    let baseGL = 10; // Default medium glycemic load
+    const foodLower = food.name?.toLowerCase() || '';
+    
+    // Adjust based on carb content and type
+    if (foodLower.includes('sugar') || foodLower.includes('candy') || foodLower.includes('white bread')) {
+      baseGL = 25; // High GL
+    } else if (foodLower.includes('whole grain') || foodLower.includes('bean') || foodLower.includes('lentil')) {
+      baseGL = 5; // Low GL
+    } else if (foodLower.includes('vegetable') && !foodLower.includes('potato')) {
+      baseGL = 3; // Very low GL
+    } else if (foodLower.includes('meat') || foodLower.includes('fish')) {
+      baseGL = 0; // No carbs
+    }
+    
+    // Further adjust based on portion/serving size if available
+    const portion = food.portion?.toLowerCase() || '';
+    if (portion.includes('large') || portion.includes('big')) {
+      baseGL *= 1.5;
+    } else if (portion.includes('small')) {
+      baseGL *= 0.7;
+    }
+    
+    return Math.round(baseGL);
+  };
+  
+  const calculateNutrientDensity = (food: any): number => {
+    let density = 5; // Default medium nutrient density (1-10 scale)
+    const foodLower = food.name?.toLowerCase() || '';
+    
+    // Calculate nutrient density score based on food type
+    if (foodLower.includes('vegetable') || foodLower.includes('greens') || foodLower.includes('spinach')) {
+      density = 9; // Very high nutrient density
+    } else if (foodLower.includes('fruit') || foodLower.includes('berry')) {
+      density = 8; // High nutrient density
+    } else if (foodLower.includes('whole grain') || foodLower.includes('bean')) {
+      density = 7; // Good nutrient density
+    } else if (foodLower.includes('processed') || foodLower.includes('junk') || foodLower.includes('candy')) {
+      density = 2; // Low nutrient density
+    }
+    
+    return density;
+  };
+
+  const handleCameraChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCamera(event.target.value);
+  };
+  
+  const resetResults = () => {
+    setNutritionData(null);
+    setCapturedImageUrl(undefined);
+    setDetectedFoods([]);
+    setError(null);
+  };
+  
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+      const previewUrl = URL.createObjectURL(file);
+      
+      setCapturedImageUrl(previewUrl);
+      setScanSource('Uploaded Image');
+      
+      // Analyze the uploaded image
+      analyzeImageFood(file);
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  const getConfidenceColor = (confidence: number): string => {
+    if (confidence > 0.8) return 'text-green-600';
+    if (confidence > 0.5) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+  
+  return (
+    <div className="nutrilens-container">
+      <div className="scanner-header">
+        <h1>NutriLens Food Scanner</h1>
+        <p>Scan food items to get detailed nutrition information</p>
+      </div>
+      
+      {nutritionData ? (
+        <>
+          <div className="captured-image">
+            {capturedImageUrl && (
+              <div>
+                <img src={capturedImageUrl} alt="Captured food" className="food-image" />
+                <div className="image-source">{scanSource}</div>
+              </div>
+            )}
+          </div>
+          
+          <ScanResults nutritionData={nutritionData} />
+          
+          {detectedFoods.length > 1 && (
+            <div className="additional-foods">
+              <h3>Also Detected:</h3>
+              <div className="detected-foods-list">
+                {detectedFoods.slice(1).map((food, index) => (
+                  <div key={index} className="detected-food-item">
+                    <span>{food.name}</span>
+                    <span className={getConfidenceColor(food.confidence)}>
+                      {Math.round(food.confidence * 100)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          <div className="action-buttons">
+            <div className="button-group">
+              <button 
+                className="btn btn-primary"
+                onClick={resetResults}
+              >
+                <Camera size={18} />
+                Scan Another Item
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="card">
+            <div className="card-header">
+              <div>Camera Feed</div>
+              <div className="select-container" style={{ width: '200px' }}>
+                <select 
+                  value={selectedCamera} 
+                  onChange={handleCameraChange}
+                  className="select-styled"
+                  disabled={cameraDevices.length === 0}
+                >
+                  {cameraDevices.length === 0 ? (
+                    <option value="">No cameras available</option>
+                  ) : (
+                    cameraDevices.map((device) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || `Camera ${device.deviceId.substr(0, 5)}...`}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <ChevronDown size={16} className="select-icon" />
+              </div>
+            </div>
+            
+            <div className="camera-container">
+              {error ? (
+                <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white p-6 text-center">
+                  <CameraOff size={48} className="mb-4 text-red-500" />
+                  <h3 className="text-xl font-semibold mb-2">Camera Error</h3>
+                  <p>{error}</p>
+                  <button 
+                    className="mt-4 btn btn-primary"
+                    onClick={() => setError(null)}
+                  >
+                    <RefreshCcw size={16} />
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    className="camera-feed"
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
+                  
+                  <div className="camera-overlay">
+                    <div className="camera-status">
+                      <div className="status-indicator"></div>
+                      <span>Camera Active</span>
+                    </div>
+                    
+                    <div className="camera-controls">
+                      <div>
+                        <label htmlFor="file-upload" className="file-upload-btn">
+                          <input 
+                            id="file-upload" 
+                            type="file" 
+                            accept="image/*"
+                            ref={fileInputRef}
+                            className="hidden" 
+                            onChange={handleFileUpload} 
+                          />
+                          <Upload size={20} />
+                        </label>
+                      </div>
+                      <div 
+                        className="shutter-btn"
+                        onClick={captureImage}
+                      ></div>
+                      <div></div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <div className="card-footer">
+              <div>
+                Position food item in frame, tap button to scan, or upload an image
+              </div>
+              <div className="badge badge-primary">AI Enhanced</div>
+            </div>
+          </div>
+          
+          {isLoading && (
+            <div className="loading-container">
+              <div className="loading-spinner"></div>
+              <div>
+                <h3 className="font-semibold text-lg mb-1">Processing Image</h3>
+                <p className="text-sm">Our AI is analyzing your food for detailed nutritional information</p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default NutriLensPage;

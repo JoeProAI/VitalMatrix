@@ -1,0 +1,27 @@
+import React from 'react';
+import dynamic from 'next/dynamic';
+import Footer from '../components/Footer';
+// TODO: Replace with Navbar from @bolt/new when available
+// import { Navbar } from '@bolt/new';
+
+const VitalTrailMap = dynamic(() => import('../components/VitalTrailMap'), {
+  ssr: false,
+});
+
+const VitalTrailPage = () => {
+  return (
+    <div style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
+      {/* <Navbar /> */}
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold text-center mb-2" style={{ color: 'var(--color-primary)' }}>VitalTrail</h1>
+        <p className="text-lg text-center mb-8">Community-Powered Emergency Room Pulse</p>
+        <div className="h-[600px] w-full rounded-lg overflow-hidden shadow-lg" style={{ backgroundColor: '#2d2d3a' }}>
+          <VitalTrailMap />
+        </div>
+      </div>
+      <Footer />
+    </div>
+  );
+};
+
+export default VitalTrailPage;

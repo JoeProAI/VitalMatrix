@@ -1,0 +1,33 @@
+{
+  "name": "vitalmatrix",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --ext .js,.ts,.tsx",
+    "vercel-build": "next build"
+  },
+  "dependencies": {
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.0",
+    "axios": "^1.10.0",
+    "form-data": "^4.0.3",
+    "lucide-react": "^0.525.0",
+    "next": "latest",
+    "node-fetch": "^2.7.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "styled-jsx": "^5.1.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
+    "@types/node": "24.0.13",
+    "@types/react": "19.1.8",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "latest",
+    "typescript": "5.8.3"
+  }
+}

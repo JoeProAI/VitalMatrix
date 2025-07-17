@@ -1,0 +1,700 @@
+import React, { useRef, useState, useEffect } from 'react';
+import styles from './scanner.module.css';
+
+// Add BarcodeDetector type definitions since they're not included in standard TypeScript libraries
+declare global {
+  interface Window {
+    BarcodeDetector?: {
+      new(options?: { formats: string[] }): BarcodeDetector;
+    };
+  }
+  
+  interface BarcodeDetector {
+    detect(image: ImageBitmapSource): Promise<Array<{
+      boundingBox: DOMRectReadOnly;
+      rawValue: string;
+      format: string;
+      cornerPoints: Array<{ x: number, y: number }>;
+    }>>;
+  }
+}
+
+// Define types for the Scanner component
+type CaptureMode = 'camera' | 'upload' | 'barcode';
+
+interface CameraInfo {
+  deviceId: string;
+  label: string;
+}
+
+interface BarcodeDetectionResult {
+  barcode: string;
+  boundingBox: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+interface ScannerProps {
+  onImageCaptured: (image: File | null) => void;
+  onBarcodeDetected: (barcode: string) => void;
+  isProcessing?: boolean;
+  className?: string;
+}
+
+// Theme colors - Dark mode with blue accents
+const colors = {
+  primary: '#111827', // Dark gray background
+  secondary: '#1f2937', // Slightly lighter gray
+  accent: '#3b82f6',   // Blue accent
+  text: '#f9fafb',
+  textMuted: '#9ca3af'
+};
+
+// Icons for the UI
+const CameraIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={styles.icon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const UploadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={styles.icon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0l-4 4m4-4v12" />
+  </svg>
+);
+
+const BarcodeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={styles.icon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+  </svg>
+);
+
+const SwitchCameraIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={styles.icon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+  </svg>
+);
+
+const CaptureIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={styles.captureIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <circle cx="12" cy="12" r="10" strokeWidth="2" />
+    <circle cx="12" cy="12" r="6" fill="currentColor" />
+  </svg>
+);
+
+const Scanner: React.FC<ScannerProps> = ({
+  onImageCaptured,
+  onBarcodeDetected,
+  isProcessing = false,
+  className = '',
+}) => {
+  // State variables
+  const [availableCameras, setAvailableCameras] = useState<CameraInfo[]>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+  const [captureMode, setCaptureMode] = useState<CaptureMode>('camera');
+  const [isLoadingCamera, setIsLoadingCamera] = useState<boolean>(false);
+  const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string>('');
+  const [isBarcodeScanActive, setIsBarcodeScanActive] = useState<boolean>(false);
+  const [scannedBarcode, setScannedBarcode] = useState<string>('');
+  const [scanningStatus, setScanningStatus] = useState<string>('');
+  const [isLocalProcessing, setIsLocalProcessing] = useState<boolean>(false);
+  
+  // Refs for DOM elements
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scannerOverlayRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const barcodeScanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  
+  // Effect to enumerate cameras when component mounts
+  useEffect(() => {
+    enumerateCameras();
+    // Listen for device changes
+    navigator.mediaDevices.addEventListener('devicechange', enumerateCameras);
+    
+    return () => {
+      // Clean up on unmount
+      stopCamera();
+      stopBarcodeScanning();
+      navigator.mediaDevices.removeEventListener('devicechange', enumerateCameras);
+    };
+  }, []);
+  
+  // Start camera when component mounts or selectedCameraId changes
+  useEffect(() => {
+    if ((captureMode === 'camera' || captureMode === 'barcode') && !isCameraActive && selectedCameraId) {
+      startCamera();
+    }
+    return () => {
+      if (isCameraActive) {
+        stopCamera();
+      }
+    };
+  }, [selectedCameraId, captureMode]);
+  
+  // Toggle barcode scanning based on mode
+  useEffect(() => {
+    if (captureMode === 'barcode' && isCameraActive) {
+      startBarcodeScanning();
+    } else {
+      stopBarcodeScanning();
+    }
+  }, [captureMode, isCameraActive]);
+  
+  // Helper function to enumerate cameras with proper permissions handling
+  const enumerateCameras = async () => {
+    try {
+      console.log('Requesting camera permissions...');
+      setScanningStatus('Requesting camera access...');
+      
+      // Explicitly request camera permission with a more demanding configuration
+      const constraints = {
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: { ideal: 'environment' }
+        },
+        audio: false
+      };
+      
+      // This will trigger the permission dialog
+      const initialStream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      console.log('Camera permission granted!');
+      setScanningStatus('Camera access granted');
+      
+      // Stop the stream immediately - we just needed it for permissions
+      initialStream.getTracks().forEach(track => track.stop());
+      
+      // Now we can enumerate devices with labels
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices
+        .filter(device => device.kind === 'videoinput')
+        .map(device => ({
+          deviceId: device.deviceId,
+          label: device.label || `Camera ${device.deviceId.slice(0, 4)}`
+        }));
+      
+      console.log('Available cameras:', cameras);
+      setAvailableCameras(cameras);
+      
+      // Select the first camera if none is selected
+      if (cameras.length > 0 && !selectedCameraId) {
+        setSelectedCameraId(cameras[0].deviceId);
+        console.log('Selected camera:', cameras[0].deviceId);
+      } else if (cameras.length === 0) {
+        setScanningStatus('No cameras detected on this device');
+        console.error('No cameras available');
+      }
+    } catch (err) {
+      console.error('Error enumerating cameras:', err);
+      setScanningStatus('Camera permission denied or not available');
+      setCameraError('Please grant camera permissions to use NutriLens Scanner');
+    }
+  };
+  
+  // Real barcode detection will be used instead of generating fake barcodes
+  
+  // Start camera function
+  const startCamera = async () => {
+    try {
+      if (!selectedCameraId) return;
+      
+      // Stop any existing stream
+      stopCamera();
+      
+      const constraints: MediaStreamConstraints = {
+        video: {
+          deviceId: { exact: selectedCameraId },
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) videoRef.current.play();
+          setIsCameraActive(true);
+        };
+      }
+    } catch (err) {
+      console.error('Error starting camera:', err);
+      setScanningStatus('Camera access denied or not available');
+    }
+  };
+  
+  // Stop camera function
+  const stopCamera = () => {
+    if (streamRef.current) {
+      const tracks = streamRef.current.getTracks();
+      tracks.forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    setIsCameraActive(false);
+    stopBarcodeScanning();
+  };
+  
+  // Capture image from camera
+  const captureImage = () => {
+    if (!videoRef.current || !canvasRef.current || isProcessing || isLocalProcessing) return;
+    
+    try {
+      setIsLocalProcessing(true);
+      setScanningStatus('Capturing image...');
+      
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      if (!context) {
+        throw new Error('Could not get canvas context');
+      }
+      
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw video frame to canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Get image data as base64 string
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      
+      // Convert base64 image data to File object
+      setTimeout(() => {
+        // Convert base64 to blob
+        const byteString = atob(imageData.split(',')[1]);
+        const mimeString = imageData.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([ab], { type: mimeString });
+        const file = new File([blob], `capture-${Date.now()}.jpg`, { type: mimeString });
+        
+        // Call onImageCaptured with the file
+        onImageCaptured(file);
+        setIsLocalProcessing(false);
+        setScanningStatus('');
+      }, 500); // Small delay for better UX
+    } catch (err) {
+      console.error('Error capturing image:', err);
+      setIsLocalProcessing(false);
+      setScanningStatus('Error capturing image');
+    }
+  };
+  
+  // Handle file selection for upload mode
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || isProcessing || isLocalProcessing) return;
+    
+    try {
+      setIsLocalProcessing(true);
+      setScanningStatus('Processing image...');
+      
+      const file = e.target.files[0];
+      
+      // Check file is an image
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Selected file is not an image');
+      }
+      
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        if (!event.target || typeof event.target.result !== 'string') {
+          setIsLocalProcessing(false);
+          setScanningStatus('Error reading file');
+          return;
+        }
+        
+        const img = new Image();
+        img.src = event.target.result;
+        
+        img.onload = () => {
+          if (!canvasRef.current) {
+            setIsLocalProcessing(false);
+            return;
+          }
+          
+          const canvas = canvasRef.current;
+          const context = canvas.getContext('2d');
+          
+          if (!context) {
+            setIsLocalProcessing(false);
+            return;
+          }
+          
+          // Set canvas dimensions to match image
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          // Draw image to canvas
+          context.drawImage(img, 0, 0, img.width, img.height);
+          
+          // Pass the original file to onImageCaptured
+          setTimeout(() => {
+            onImageCaptured(file);
+            setIsLocalProcessing(false);
+            setScanningStatus('');
+            
+            // Reset file input
+            if (e.target) {
+              e.target.value = '';
+            }
+          }, 500);
+        };
+        
+        img.onerror = () => {
+          setIsLocalProcessing(false);
+          setScanningStatus('Error loading image');
+        };
+      };
+      
+      reader.onerror = () => {
+        setIsLocalProcessing(false);
+        setScanningStatus('Error reading file');
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error processing image:', err);
+      setIsLocalProcessing(false);
+      setScanningStatus('Error processing image');
+    }
+  };
+  
+  // Start barcode scanning
+  const startBarcodeScanning = () => {
+    if (!isCameraActive || barcodeScanIntervalRef.current) return;
+    
+    // Start the scanning process
+    setIsBarcodeScanActive(true);
+    setScanningStatus('Scanning for barcode...');
+    
+    // Real barcode scanning using intervals
+    barcodeScanIntervalRef.current = setInterval(performScan, 1000); // Scan every second
+  };
+  
+  // Barcode scanning function that uses real BarcodeDetector API with no fallbacks
+  const performScan = async () => {
+    // Check for required references
+    if (!videoRef.current || !canvasRef.current) {
+      setScanningStatus('Video or canvas not available');
+      return;
+    }
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (!context) {
+      setScanningStatus('Canvas context not available');
+      return;
+    }
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw current video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    try {
+      // Check if BarcodeDetector API is available
+      if (!window.BarcodeDetector) {
+        setScanningStatus('Barcode detection not supported in this browser');
+        console.error('BarcodeDetector API not available');
+        stopBarcodeScanning();
+        return;
+      }
+      
+      // Create a detector with supported formats
+      const barcodeDetector = new window.BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'code_39', 'code_128', 'qr_code', 'data_matrix', 'upc_a', 'upc_e']
+      });
+      
+      // Perform real barcode detection
+      const barcodes = await barcodeDetector.detect(canvas);
+      
+      // Process detected barcodes
+      if (barcodes && barcodes.length > 0) {
+        const barcode = barcodes[0];
+        const { boundingBox } = barcode;
+        const { x, y, width, height } = boundingBox;
+        
+        // Draw detection box
+        context.strokeStyle = '#00FF00';
+        context.lineWidth = 3;
+        context.strokeRect(x, y, width, height);
+        
+        // Log success
+        console.log('Barcode detected:', barcode.rawValue, 'Format:', barcode.format);
+        
+        // Pass detection to handler
+        handleBarcodeDetected({
+          barcode: barcode.rawValue,
+          boundingBox: {
+            x,
+            y,
+            width,
+            height
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error during barcode detection:', error);
+      setScanningStatus(`Barcode detection error: ${error.message}`);
+      // No fallback to simulation - fail visibly if real detection doesn't work
+    }
+  };
+  
+  // Stop barcode scanning
+  const stopBarcodeScanning = () => {
+    if (barcodeScanIntervalRef.current) {
+      clearInterval(barcodeScanIntervalRef.current);
+      barcodeScanIntervalRef.current = null;
+    }
+    setIsBarcodeScanActive(false);
+  };
+  
+  // Handle barcode detection
+  const handleBarcodeDetected = (result: BarcodeDetectionResult) => {
+    setScannedBarcode(result.barcode);
+    stopBarcodeScanning();
+    setIsLocalProcessing(true);
+    
+    // Highlight barcode in UI
+    if (scannerOverlayRef.current && result.boundingBox) {
+      const overlay = scannerOverlayRef.current;
+      overlay.style.left = `${result.boundingBox.x}px`;
+      overlay.style.top = `${result.boundingBox.y}px`;
+      overlay.style.width = `${result.boundingBox.width}px`;
+      overlay.style.height = `${result.boundingBox.height}px`;
+      overlay.style.display = 'block';
+    }
+    
+    // Notify parent component
+    setTimeout(() => {
+      // Call onBarcodeDetected with the barcode value
+      onBarcodeDetected(result.barcode);
+      setIsLocalProcessing(false);
+      
+      if (scannerOverlayRef.current) {
+        scannerOverlayRef.current.style.display = 'none';
+      }
+    }, 1000); // Delay to show the highlight
+  };
+  
+  // Switch capture mode
+  const switchMode = (mode: CaptureMode) => {
+    setCaptureMode(mode);
+    setScannedBarcode('');
+    setScanningStatus('');
+    
+    // Handle camera modes
+    if (mode === 'camera' || mode === 'barcode') {
+      if (!isCameraActive && selectedCameraId) {
+        startCamera();
+      }
+    } else {
+      stopCamera();
+    }
+  };
+  
+  return (
+    <div className={`${styles.scannerContainer} ${className}`}>
+      {/* Hidden canvas for image processing */}
+      <canvas ref={canvasRef} className={styles.hiddenCanvas} />
+      
+      {/* Mode switcher */}
+      <div className={styles.modeSwitcher}>
+        <button
+          className={`${styles.modeButton} ${captureMode === 'camera' ? styles.activeMode : ''}`}
+          onClick={() => switchMode('camera')}
+          disabled={isProcessing || isLocalProcessing}
+        >
+          <CameraIcon />
+          <span>Photo</span>
+        </button>
+        <button
+          className={`${styles.modeButton} ${captureMode === 'upload' ? styles.activeMode : ''}`}
+          onClick={() => switchMode('upload')}
+          disabled={isProcessing || isLocalProcessing}
+        >
+          <UploadIcon />
+          <span>Upload</span>
+        </button>
+        <button
+          className={`${styles.modeButton} ${captureMode === 'barcode' ? styles.activeMode : ''}`}
+          onClick={() => switchMode('barcode')}
+          disabled={isProcessing || isLocalProcessing}
+        >
+          <BarcodeIcon />
+          <span>Barcode</span>
+        </button>
+      </div>
+      
+      {/* Main content area */}
+      <div className={styles.scannerContent}>
+        {(captureMode === 'camera' || captureMode === 'barcode') ? (
+          <div className={styles.cameraContainer}>
+            {/* Video element */}
+            <video
+              ref={videoRef}
+              className={styles.cameraVideo}
+              playsInline
+              muted
+              autoPlay
+            />
+            
+            {/* Barcode scanner overlay */}
+            {captureMode === 'barcode' && (
+              <>
+                <div className={styles.barcodeScannerOverlay}>
+                  <div className={styles.barcodeScannerTarget} />
+                </div>
+                <div 
+                  ref={scannerOverlayRef} 
+                  className={styles.barcodeHighlight} 
+                  style={{ display: 'none' }}
+                />
+              </>
+            )}
+            
+            {/* Camera controls */}
+            <div className={styles.cameraControls}>
+              {/* Switch camera button - Only show when multiple cameras */}
+              {availableCameras.length > 1 && (
+                <button
+                  onClick={() => {
+                    const currentIndex = availableCameras.findIndex(c => c.deviceId === selectedCameraId);
+                    const nextIndex = (currentIndex + 1) % availableCameras.length;
+                    setSelectedCameraId(availableCameras[nextIndex].deviceId);
+                  }}
+                  className={styles.switchCameraButton}
+                  disabled={isProcessing || isLocalProcessing}
+                  aria-label="Switch camera"
+                >
+                  <SwitchCameraIcon />
+                </button>
+              )}
+              
+              {/* Camera selection dropdown - Only show when camera mode is active and multiple cameras available */}
+              {(captureMode === 'camera' || captureMode === 'barcode') && availableCameras.length > 1 && (
+                <div className={styles.cameraSelector}>
+                  <select
+                    className={styles.cameraSelectorDropdown}
+                    value={selectedCameraId}
+                    onChange={(e) => {
+                      setSelectedCameraId(e.target.value);
+                      if (isCameraActive) {
+                        stopCamera();
+                        setTimeout(() => startCamera(), 300); // Brief delay to ensure camera switches properly
+                      }
+                    }}
+                    aria-label="Select camera"
+                  >
+                    {availableCameras.map((camera) => (
+                      <option key={camera.deviceId} value={camera.deviceId}>
+                        {camera.label || `Camera ${camera.deviceId.slice(0, 4)}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              
+              {/* Capture button or processing indicator */}
+              {captureMode === 'camera' && (
+                <div className={styles.captureButtonContainer}>
+                  {isProcessing || isLocalProcessing ? (
+                    <div className={styles.processingIndicator}>
+                      <div className={styles.processingSpinner} />
+                    </div>
+                  ) : isCameraActive && (
+                    <button
+                      onClick={captureImage}
+                      className={styles.captureButton}
+                      disabled={isProcessing || isLocalProcessing}
+                      aria-label="Take photo"
+                    >
+                      <CaptureIcon />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.uploadContainer}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className={styles.hiddenFileInput}
+              ref={fileInputRef}
+              disabled={isProcessing || isLocalProcessing}
+            />
+            {isProcessing || isLocalProcessing ? (
+              <div className={styles.processingContainer}>
+                <div className={styles.processingSpinner} />
+                <div className={styles.processingText}>
+                  {scanningStatus || 'Processing...'}
+                </div>
+              </div>
+            ) : (
+              <div
+                className={styles.uploadPrompt}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className={styles.uploadIconContainer}>
+                  <UploadIcon />
+                </div>
+                <div className={styles.uploadText}>
+                  Click to upload an image
+                </div>
+                <div className={styles.uploadSubtext}>
+                  Supports JPEG, PNG, and WebP formats
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
+      {/* Instructions */}
+      <div className={styles.instructionText}>
+        {captureMode === 'camera' && !isProcessing && !isLocalProcessing && (
+          <span>Position your food in the frame and tap the button to capture</span>
+        )}
+        {captureMode === 'barcode' && !isProcessing && !isLocalProcessing && (
+          <span>Align the barcode within the blue box and hold steady</span>
+        )}
+        {captureMode === 'upload' && !isProcessing && !isLocalProcessing && (
+          <span>Upload a clear image of your food or a product barcode</span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Scanner;

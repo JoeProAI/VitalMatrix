@@ -1,0 +1,400 @@
+/* Scanner animations and styling */
+.scannerContainer {
+  background-color: #111827;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.scannerLine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  animation: scan 2s infinite ease-in-out;
+  box-shadow: 0 0 15px 2px #3b82f6;
+}
+
+@keyframes scan {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Pulse effect for barcode scanning */
+.barcodeGuide {
+  box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.barcodeGuide.scanning {
+  border-color: rgba(74, 222, 128, 0.6) !important;
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.4) !important;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.tabContainer {
+  background-color: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.primaryButton {
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  color: white;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+}
+
+.primaryButton:hover {
+  background: linear-gradient(90deg, #2563eb, #1e40af);
+  box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
+}
+
+.captureBtn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(59, 130, 246, 0.6);
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.captureBtn:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+/* Scanner Component Styles */
+.scannerHeader {
+  padding: 12px;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modeSwitcher {
+  display: flex;
+  background-color: rgba(31, 41, 55, 0.5);
+  border-radius: 24px;
+  padding: 4px;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.modeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modeButton:hover {
+  color: #f9fafb;
+}
+
+.activeMode {
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  color: white;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+}
+
+.scannerContent {
+  position: relative;
+  height: 400px;
+  background-color: #1f2937;
+  overflow: hidden;
+}
+
+.cameraContainer {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.cameraPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.barcodeScanOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.barcodeTargetBox {
+  width: 250px;
+  height: 150px;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
+  animation: pulse 2s infinite;
+}
+
+.barcodeDetectedBox {
+  position: absolute;
+  border: 2px solid #10b981;
+  background-color: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  display: none;
+  border-radius: 4px;
+  z-index: 10;
+}
+
+.scannedBarcodeDisplay {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #f9fafb;
+  background-color: rgba(31, 41, 55, 0.8);
+  padding: 8px;
+  backdrop-filter: blur(5px);
+}
+
+.cameraControls {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.captureButtonContainer {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.captureButton {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid white;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+}
+
+.captureButton:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.captureIcon {
+  width: 48px;
+  height: 48px;
+  color: white;
+}
+
+.switchCameraButton {
+  position: absolute;
+  right: 16px;
+  background: rgba(31, 41, 55, 0.6);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  color: white;
+}
+
+.cameraSelector {
+  position: absolute;
+  left: 16px;
+}
+
+.cameraSelectorDropdown {
+  background: rgba(31, 41, 55, 0.6);
+  color: white;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+.uploadContainer {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #1f2937;
+  padding: 20px;
+}
+
+.hiddenFileInput {
+  display: none;
+}
+
+.uploadPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(59, 130, 246, 0.4);
+  border-radius: 8px;
+  padding: 40px;
+  width: 100%;
+  max-width: 320px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: rgba(31, 41, 55, 0.5);
+}
+
+.uploadPrompt:hover {
+  border-color: #3b82f6;
+  background-color: rgba(31, 41, 55, 0.7);
+}
+
+.uploadIconContainer {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  margin-bottom: 16px;
+}
+
+.uploadText {
+  font-size: 18px;
+  font-weight: 500;
+  color: #f9fafb;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.uploadSubtext {
+  font-size: 14px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.processingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 20;
+}
+
+.processingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.processingSpinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(59, 130, 246, 0.3);
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.processingText {
+  color: #f9fafb;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.processingIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.instructionText {
+  padding: 12px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 14px;
+  background-color: rgba(31, 41, 55, 0.6);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.hiddenCanvas {
+  display: none;
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": true,
+    "incremental": true,
+    "module": "esnext",
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve"
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/features/NutriLens/**/*.ts",
+    "src/features/NutriLens/**/*.tsx",
+    "src/pages/index.tsx",
+    "src/pages/_app.tsx",
+    "src/pages/_document.tsx",
+    "src/pages/nutrilens.tsx",
+    "src/services/spoonacular.ts",
+    "src/pages/api/spoonacular/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/components/**/*",
+    "src/features/CommunityPulse/**/*",
+    "src/pages/original.tsx",
+    "src/pages/simplified.tsx",
+    "components",
+    "Landing page",
+    "vitalmatrix_scaffold",
+    "modal",
+    "spoonacular-proxy",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ]
+}
