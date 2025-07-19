@@ -45,12 +45,13 @@ const crowdingLevelColors: CrowdingLevelColors = {
   high: '#ef4444' // red
 };
 
-// Google Maps API key - with fallback and debugging
-const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyDf9E5b-D5IDLJY0ZPU08zBlzP-7xEVkLk";
-console.log('🗺️ Google Maps API Key loaded:', googleMapsApiKey ? 'Yes' : 'No', googleMapsApiKey?.substring(0, 10) + '...');
+// Google Maps API key - from environment variables only
+const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+console.log('🗺️ Google Maps API Key loaded:', googleMapsApiKey ? 'Yes' : 'No');
 
 if (!googleMapsApiKey) {
   console.error('❌ Google Maps API key is missing! Check environment variables.');
+  console.error('Expected environment variable: VITE_GOOGLE_MAPS_API_KEY');
 }
 
 const CommunityPulse: React.FC = () => {
@@ -74,11 +75,20 @@ const CommunityPulse: React.FC = () => {
   const [error, setError] = useState<string>('');
   const mapRef = useRef<google.maps.Map | null>(null);
 
-  // Load Google Maps API
-  const { isLoaded } = useJsApiLoader({
+  // Load Google Maps API (only if key is available)
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey
+    googleMapsApiKey: googleMapsApiKey || '',
+    // Prevent loading if no API key
+    preventGoogleFontsLoading: true
   });
+  
+  // Show error if API key is missing
+  useEffect(() => {
+    if (!googleMapsApiKey) {
+      setError('Google Maps API key is not configured. Please contact support.');
+    }
+  }, [googleMapsApiKey]);
 
   // Load real healthcare facilities from Google Places API
   const loadRealFacilities = useCallback(async (position: MapPosition, radius: number = 5000) => {
