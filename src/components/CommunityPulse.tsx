@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Circle } from '@react-google-maps/api';
 import { Map, Clock3, Star, AlertCircle, User, Activity, UserPlus, FileEdit, Home, Scan, Users } from 'lucide-react';
 import { 
   getNearbyFacilities, 
@@ -436,8 +436,50 @@ const CommunityPulse: React.FC = () => {
             <span>Use My Location</span>
           </button>
         </div>
-        <div className="radius-display">
-          <span>Search radius: {searchRadius} km</span>
+        <div className="radius-controls" style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+          backgroundColor: '#1e293b',
+          padding: '1rem',
+          borderRadius: '8px',
+          color: '#e2e8f0'
+        }}>
+          <label htmlFor="radius-slider" style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+            Search radius: {searchRadius} km
+          </label>
+          <input
+            id="radius-slider"
+            type="range"
+            min="1"
+            max="25"
+            value={searchRadius}
+            onChange={(e) => {
+              const newRadius = parseInt(e.target.value);
+              setSearchRadius(newRadius);
+              if (mapPosition.lat !== 40.7128 || mapPosition.lng !== -74.0060) {
+                loadRealFacilities(mapPosition, newRadius * 1000);
+              }
+            }}
+            style={{
+              width: '100%',
+              height: '4px',
+              borderRadius: '2px',
+              background: '#475569',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          />
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '0.75rem',
+            color: '#94a3b8'
+          }}>
+            <span>1km</span>
+            <span>Click map to search new areas</span>
+            <span>25km</span>
+          </div>
         </div>
         <div className="facilities-counter" style={{ 
           backgroundColor: '#1e293b', 
@@ -482,6 +524,16 @@ const CommunityPulse: React.FC = () => {
           onLoad={onMapLoad}
           onDragEnd={handleMapDragEnd}
           onZoomChanged={handleZoomChanged}
+          onClick={(event) => {
+            if (event.latLng) {
+              const newPosition = {
+                lat: event.latLng.lat(),
+                lng: event.latLng.lng()
+              };
+              setMapPosition(newPosition);
+              loadRealFacilities(newPosition, searchRadius * 1000);
+            }
+          }}
           options={{
             disableDefaultUI: false,
             zoomControl: true,
@@ -552,6 +604,24 @@ const CommunityPulse: React.FC = () => {
               zIndex={1000}
             />
           ))}
+          
+          {/* Search radius circle */}
+          <Circle
+            center={mapPosition}
+            radius={searchRadius * 1000} // Convert km to meters
+            options={{
+              fillColor: '#3b82f6',
+              fillOpacity: 0.1,
+              strokeColor: '#3b82f6',
+              strokeOpacity: 0.4,
+              strokeWeight: 2,
+              clickable: false,
+              draggable: false,
+              editable: false,
+              visible: true,
+              zIndex: 1
+            }}
+          />
           
           {/* Debug: Show total facilities count - moved to useEffect */}
 
