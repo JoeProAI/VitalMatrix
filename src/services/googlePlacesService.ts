@@ -95,8 +95,10 @@ export const searchHealthcareFacilities = async (
     
     const searchType = type || 'health';
     
-    // Use our proxy server instead of direct Google Places API call
-    const url = `http://localhost:3001/api/places/search?lat=${lat}&lng=${lng}&radius=${radius}&type=${searchType}`;
+    // Use appropriate API endpoint based on environment
+    const isProduction = window.location.hostname !== 'localhost';
+    const baseUrl = isProduction ? '' : 'http://localhost:3001';
+    const url = `${baseUrl}/api/places/search?lat=${lat}&lng=${lng}&radius=${radius}&type=${searchType}`;
 
     const response = await fetch(url);
     
@@ -131,8 +133,10 @@ export const searchHealthcareFacilities = async (
 // Get detailed information about a specific place
 export const getPlaceDetails = async (placeId: string): Promise<GooglePlace | null> => {
   try {
-    // Use our proxy server instead of direct Google Places API call
-    const url = `http://localhost:3001/api/places/details?placeId=${placeId}`;
+    // Use appropriate API endpoint based on environment
+    const isProduction = window.location.hostname !== 'localhost';
+    const baseUrl = isProduction ? '' : 'http://localhost:3001';
+    const url = `${baseUrl}/api/places/details?placeId=${placeId}`;
 
     const response = await fetch(url);
     
