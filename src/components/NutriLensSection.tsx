@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const NutriLensSection = () => {
   const [animate, setAnimate] = useState(false);
   const [scanActive, setScanActive] = useState(false);
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
   
   useEffect(() => {
     const timer = setTimeout(() => setAnimate(true), 500);
@@ -13,6 +17,17 @@ const NutriLensSection = () => {
   const startScan = () => {
     setScanActive(true);
     setTimeout(() => setScanActive(false), 3000);
+  };
+
+  // Handle NutriLens button click
+  const handleTryNutriLens = () => {
+    if (currentUser) {
+      // User is signed in, go to NutriLens
+      navigate('/nutrilens');
+    } else {
+      // User is not signed in, go to sign up
+      navigate('/signup');
+    }
   };
   
   // Nutrition data for demo
@@ -245,11 +260,17 @@ const NutriLensSection = () => {
             </div>
             
             <div className="flex flex-wrap gap-4">
-              <button className="px-6 py-3 rounded-full bg-gradient-to-r from-neon-purple to-hot-pink text-white font-medium hover:shadow-glow hover:shadow-neon-purple/30 transition-all duration-300">
-                Try NutriLens Now
+              <button 
+                onClick={handleTryNutriLens}
+                className="px-6 py-3 rounded-full bg-gradient-to-r from-neon-purple to-hot-pink text-white font-medium hover:shadow-glow hover:shadow-neon-purple/30 transition-all duration-300"
+              >
+                {currentUser ? 'Open NutriLens' : 'Try NutriLens Now'}
               </button>
-              <button className="px-6 py-3 rounded-full border border-neon-purple/50 text-white font-medium hover:bg-neon-purple/10 transition-all duration-300">
-                Learn More
+              <button 
+                onClick={() => navigate('/signup')}
+                className="px-6 py-3 rounded-full border border-neon-purple/50 text-white font-medium hover:bg-neon-purple/10 transition-all duration-300"
+              >
+                {currentUser ? 'Dashboard' : 'Sign Up Free'}
               </button>
             </div>
           </div>

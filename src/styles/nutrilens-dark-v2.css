@@ -1,0 +1,364 @@
+/* NUTRILENS DARK MODE V2 - TIMESTAMP: 2025-07-17 */
+
+/* Main container */
+.app-container {
+  background: #121218 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  padding: 20px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  max-width: 800px !important;
+  margin: 0 auto !important;
+  min-height: 80vh !important;
+}
+
+/* Scanner header */
+.scanner-header {
+  text-align: center !important;
+  margin-bottom: 20px !important;
+  color: #e0e0e0 !important;
+}
+
+.scanner-header h1 {
+  color: #e0e0e0 !important;
+  font-size: 1.8rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  letter-spacing: -0.3px !important;
+}
+
+.scanner-header p {
+  color: #a0a0a0 !important;
+  font-size: 1rem !important;
+  max-width: 500px !important;
+  margin: 0 auto !important;
+}
+
+/* Card container */
+.card-container {
+  background: #1a1a22 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
+  margin-bottom: 20px !important;
+}
+
+/* Camera container */
+.camera-container {
+  position: relative !important;
+  width: 100% !important;
+  aspect-ratio: 4/3 !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+  background: #000 !important;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+.camera-feed {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Scan button */
+.btn-scan {
+  background: #2d3748 !important;
+  color: #e0e0e0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+  padding: 10px 16px !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-scan:hover {
+  background: #3a4a61 !important;
+  box-shadow: 0 0 8px rgba(75, 85, 99, 0.5) !important;
+}
+
+.btn-scan:active {
+  transform: translateY(1px) !important;
+}
+
+/* Upload button */
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #a0a0a0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+  padding: 10px 16px !important;
+  font-size: 0.9rem !important;
+  font-weight: 400 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Barcode scanner indicator */
+.barcode-scanner-indicator {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Replace scan line with subtle scan dot */
+.scan-dot {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 16px !important;
+  height: 16px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 rgba(255, 255, 255, 0.7) !important;
+  animation: pulse 2s infinite !important;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+    opacity: 0.7;
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+    opacity: 1;
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    opacity: 0.7;
+  }
+}
+
+.scanning-text {
+  position: absolute !important;
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: #e0e0e0 !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  font-size: 0.9rem !important;
+}
+
+/* Camera overlay */
+.camera-overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  pointer-events: none !important;
+}
+
+/* Input fields */
+.input-group {
+  margin-bottom: 15px !important;
+}
+
+.form-control {
+  width: 100% !important;
+  padding: 10px 12px !important;
+  border-radius: 4px !important;
+  border: 1px solid #2a2e3c !important;
+  background: #1e212d !important;
+  color: #a0a0a0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.form-control:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(74, 107, 189, 0.25) !important;
+  border-color: #3d4a63 !important;
+}
+
+.camera-status {
+  position: absolute !important;
+  top: 20px !important;
+  right: 20px !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: #e0e0e0 !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 0.8rem !important;
+}
+
+.status-indicator {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background: #4CAF50 !important;
+}
+
+/* Last barcode info */
+.last-barcode {
+  position: absolute !important;
+  bottom: 20px !important;
+  left: 20px !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: #e0e0e0 !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  font-size: 0.8rem !important;
+  max-width: 60% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.last-barcode strong {
+  color: #a0a0a0 !important;
+  font-weight: 600 !important;
+}
+
+/* Card footer */
+.card-footer {
+  padding: 12px 16px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  font-size: 0.85rem !important;
+  color: #a0a0a0 !important;
+}
+
+/* Badge */
+.badge {
+  background: #2d3748 !important;
+  color: #a0a0a0 !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+}
+
+/* Bottom actions area */
+.bottom-actions {
+  position: sticky !important;
+  bottom: 20px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  padding: 10px !important;
+  background: rgba(26, 26, 34, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 8px !important;
+  z-index: 10 !important;
+}
+
+/* Loading spinner */
+.loading-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(18, 18, 24, 0.9) !important;
+  z-index: 100 !important;
+  gap: 20px !important;
+  padding: 20px !important;
+}
+
+.loading-spinner {
+  width: 40px !important;
+  height: 40px !important;
+  border: 3px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 50% !important;
+  border-top-color: #4a6bbd !important;
+  animation: spin 1s ease-in-out infinite !important;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Override any remaining neon effects */
+* {
+  text-shadow: none !important;
+}
+
+button {
+  background: #2d3748 !important;
+  color: #e0e0e0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Camera actions */
+.camera-actions {
+  display: flex !important;
+  justify-content: space-between !important;
+  padding: 15px !important;
+}
+
+/* Camera options */
+.camera-options {
+  background: #1a1a22 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 4px !important;
+  padding: 10px !important;
+  margin-bottom: 15px !important;
+}
+
+.camera-options select {
+  background: #2d3748 !important;
+  color: #e0e0e0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 4px !important;
+  padding: 8px 10px !important;
+  width: 100% !important;
+}
+
+/* Alert styles */
+.alert-container {
+  padding: 12px !important;
+  border-radius: 4px !important;
+  margin-bottom: 15px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.alert-error {
+  background: rgba(220, 38, 38, 0.1) !important;
+  border: 1px solid rgba(220, 38, 38, 0.2) !important;
+  color: #f87171 !important;
+}
+
+/* Override any app-wrapper styling */
+.app-wrapper {
+  background: #121218 !important;
+  min-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 20px !important;
+}
+
+/* Hide the scanner lines */
+.scan-line {
+  display: none !important;
+}

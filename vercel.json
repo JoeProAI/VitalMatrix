@@ -1,0 +1,24 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/ai-analyze-food.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "VITE_FIREBASE_API_KEY": "AIzaSyDORZlT5gvr5gmwK1FKywNErqS5FQFkGwQ",
+    "VITE_FIREBASE_AUTH_DOMAIN": "vitalmatrix-b09c8.firebaseapp.com",
+    "VITE_FIREBASE_PROJECT_ID": "vitalmatrix-b09c8",
+    "VITE_FIREBASE_STORAGE_BUCKET": "vitalmatrix-b09c8.appspot.com",
+    "VITE_FIREBASE_MESSAGING_SENDER_ID": "328594649065",
+    "VITE_FIREBASE_APP_ID": "1:328594649065:web:vitalmatrix-b09c8",
+    "VITE_GOOGLE_MAPS_API_KEY": "AIzaSyDf9E5b-D5IDLJY0ZPU08zBlzP-7xEVkLk"
+  }
+}

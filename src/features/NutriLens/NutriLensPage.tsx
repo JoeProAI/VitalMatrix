@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, FC } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, CameraOff, RefreshCcw, Check, AlertTriangle, ChevronDown, Upload, Barcode, Info } from 'lucide-react';
 import ScanResults, { NutritionData } from './ScanResults';
 // Import custom barcode scanner
@@ -60,20 +60,22 @@ interface CameraDebugInfo {
   errorLog: string[];
 }
 
-const NutriLensPage: FC = () => {
+const NutriLensPage = (): React.ReactElement => {
+  // State declarations
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null);
   const [capturedImageUrl, setCapturedImageUrl] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>('');
+
   const [detectedFoods, setDetectedFoods] = useState<any[]>([]);
   const [scanSource, setScanSource] = useState<string>('AI Vision');
-  const [barcodeScannerActive, setBarcodeScannerActive] = useState(false); // Barcode scanner initially off
-  const [lastBarcode, setLastBarcode] = useState<string | null>(null);
+  const [isScanningForBarcodes, setIsScanningForBarcodes] = useState(false); // Barcode scanner initially off
+  const [lastBarcodeValue, setLastBarcodeValue] = useState<string | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   
-  // New debug state for troubleshooting
+  // Debug state for troubleshooting
   const [debugMode, setDebugMode] = useState<boolean>(true); // Enable debug by default in production
   const [debugInfo, setDebugInfo] = useState<CameraDebugInfo>({
     browserInfo: detectBrowser(),
@@ -88,12 +90,13 @@ const NutriLensPage: FC = () => {
   // Camera status
   const [cameraStatus, setCameraStatus] = useState<'pending'|'initializing'|'active'|'error'|'not-supported'>('pending');
   
+  // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const barcodeReaderRef = useRef<any>(null); // Using any to avoid TypeScript errors with ZXing
-  const barcodeScannerIntervalRef = useRef<number | null>(null);
+  const barcodeReaderRef = useRef<any>(null); 
+  const barcodeScannerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Logger function that both logs to console and updates debug state
   const logDebug = (message: string, data?: any) => {
@@ -146,6 +149,110 @@ const NutriLensPage: FC = () => {
     }
   };
 
+  // Function declarations are moved to avoid duplication
+
+  // Comprehensive camera initialization function
+  const startCamera = async () => {
+    // If already streaming, stop it first
+    stopCameraStream();
+    
+    try {
+      // Clear any previous errors and update status
+      setError(null);
+      setCameraStatus('initializing');
+      logDebug('Starting camera initialization process');
+      
+      // Double check API support
+      if (!checkCameraSupport()) {
+        return;
+      }
+      
+      const constraints: MediaStreamConstraints = { 
+        video: { 
+          deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
+          facingMode: !selectedCamera ? "environment" : undefined,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }, 
+        audio: false 
+      };
+
+      // Start the camera
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Handle the successful stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        
+        // Safari/iOS sometimes needs a specific playsinline attribute
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        
+        // Set up event handlers for video element
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play()
+              .then(() => {
+                logDebug('Camera video playback started');
+                setCameraStatus('active');
+                setIsCameraReady(true);
+              })
+              .catch(e => {
+                handleCameraError(e, 'video.play');
+              });
+          }
+        };
+        
+        videoRef.current.onerror = (e) => {
+          handleCameraError(e, 'video.error');
+        };
+      } else {
+        throw new Error('Video element not available');
+      }
+    } catch (err) {
+      handleCameraError(err, 'startCamera');
+    }
+  };
+
+  // Capture image from camera feed
+  const captureImage = () => {
+    if (!videoRef.current || !canvasRef.current || !streamRef.current) {
+      setError('Camera not ready');
+      return;
+    }
+    
+    try {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      if (!context) {
+        throw new Error('Could not get canvas context');
+      }
+      
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw the current video frame to canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Convert to file for analysis
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const imageFile = new File([blob], 'food-capture.jpg', { type: 'image/jpeg' });
+          analyzeImageFood(imageFile);
+        } else {
+          throw new Error('Failed to create image blob');
+        }
+      }, 'image/jpeg', 0.95);
+    } catch (err) {
+      console.error('Error capturing image:', err);
+      setError(`Failed to capture image: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+  
   // Get available camera devices with enhanced error handling and logging
   useEffect(() => {
     const getCameras = async () => {
@@ -266,13 +373,38 @@ const NutriLensPage: FC = () => {
   useEffect(() => {
     let startScannerTimeout: NodeJS.Timeout | null = null;
     
-    if (isCameraReady && !barcodeScannerIntervalRef.current && !barcodeScannerActive) {
+    if (isCameraReady && !barcodeScannerIntervalRef.current && !isScanningForBarcodes) {
       logDebug('Camera is ready, auto-starting barcode scanner');
+      // Import ZXing barcode reader when in browser environment
+      useEffect(() => {
+        // Only import in browser environment
+        if (typeof window !== 'undefined') {
+          console.log('Importing ZXing library...');
+          // Dynamic import for ZXing browser module
+          import('@zxing/browser').then(ZXingBrowser => {
+            console.log('ZXing browser imported successfully');
+            // Then import the library module
+            import('@zxing/library').then(ZXingLibrary => {
+              console.log('ZXing library imported successfully');
+              
+              // Create the barcode reader instance
+              const hints = new Map();
+              hints.set(ZXingLibrary.DecodeHintType.TRY_HARDER, true);
+              hints.set(ZXingLibrary.DecodeHintType.ASSUME_GS1, false);
+              
+              const reader = new ZXingBrowser.BrowserMultiFormatReader(hints);
+              barcodeReaderRef.current = reader;
+              console.log('ZXing barcode reader initialized');
+            }).catch(err => logDebug('Failed to import ZXing library', err));
+          }).catch(err => logDebug('Failed to import ZXing browser', err));
+        }
+      }, []); // No delay for ZXing import
+
       // Add a delay to make sure everything is fully initialized
       startScannerTimeout = setTimeout(() => {
         logDebug('Auto-starting barcode scanner');
         if (!barcodeScannerIntervalRef.current) {
-          setBarcodeScannerActive(true);
+          setIsScanningForBarcodes(true);
           startBarcodeScanner();
         }
       }, 2000);
@@ -283,283 +415,7 @@ const NutriLensPage: FC = () => {
         clearTimeout(startScannerTimeout);
       }
     };
-  }, [isCameraReady, barcodeScannerActive]);
-
-  // Initialize barcode reader
-  useEffect(() => {
-    // Initialize ZXing BrowserMultiFormatReader for barcode scanning
-    if (typeof window !== 'undefined') {
-      logDebug('Initializing barcode reader...');
-      // Dynamic import of the ZXing library
-      import('@zxing/browser').then(({ BrowserMultiFormatReader }) => {
-        import('@zxing/library').then(({ BarcodeFormat, DecodeHintType }) => {
-          try {
-            // Configure hints to optimize for common barcode formats
-            const hints = new Map();
-            hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-              BarcodeFormat.EAN_13,
-              BarcodeFormat.UPC_A,
-              BarcodeFormat.UPC_E,
-              BarcodeFormat.EAN_8,
-              BarcodeFormat.CODE_128,
-              BarcodeFormat.CODE_39,
-              BarcodeFormat.QR_CODE // Add QR code support
-            ]);
-            hints.set(DecodeHintType.TRY_HARDER, true);
-            hints.set(DecodeHintType.PURE_BARCODE, false); // Allow imperfect barcodes
-            
-            // Create reader with optimized settings
-            const reader = new BrowserMultiFormatReader(hints, { 
-              delayBetweenScanAttempts: 10, // Very aggressive scanning
-              delayBetweenScanSuccess: 500 // Shorter delay after successful scan
-            });
-            
-            barcodeReaderRef.current = reader;
-            logDebug('Barcode reader initialized successfully with enhanced configuration');
-          } catch (err) {
-            logDebug('Failed to initialize barcode reader', err);
-          }
-        }).catch(err => logDebug('Failed to import ZXing library', err));
-      }).catch(err => logDebug('Failed to import ZXing browser', err));
-    }
-    
-    // Clean up ZXing reader on unmount
-    return () => {
-      if (barcodeReaderRef.current) {
-        try {
-          barcodeReaderRef.current.reset();
-          logDebug('Barcode reader reset');
-        } catch (err) {
-          logDebug('Error resetting barcode reader', err);
-        }
-      }
-      
-      if (barcodeScannerIntervalRef.current) {
-        clearInterval(barcodeScannerIntervalRef.current);
-        barcodeScannerIntervalRef.current = null;
-        logDebug('Barcode scanner interval cleared');
-      }
-      
-      stopCameraStream();
-    };
-  }, []);
-  
-  // Comprehensive camera initialization function
-  const startCamera = async () => {
-    // If already streaming, stop it first
-    stopCameraStream();
-    
-    try {
-      // Clear any previous errors and update status
-      setError(null);
-      setCameraStatus('initializing');
-      logDebug('Starting camera initialization process');
-      
-      // Double check API support
-      if (!checkCameraSupport()) {
-        return;
-      }
-      
-      // Safari/iOS specific fixes
-      const browser = detectBrowser();
-      const isiOS = browser.os === 'iOS';
-      const isSafari = browser.name === 'Safari';
-      
-      // Get appropriate constraints based on device/browser
-      const createConstraints = (deviceId?: string, quality: 'high'|'medium'|'low'|'minimal' = 'high') => {
-        const constraints: MediaStreamConstraints = { audio: false, video: {} };
-        const videoConstraints: any = {};
-        
-        // Set device ID if provided
-        if (deviceId) {
-          videoConstraints.deviceId = { exact: deviceId };
-        }
-        
-        // Set facingMode to 'environment' for mobile devices as fallback
-        if (!deviceId && browser.mobile) {
-          videoConstraints.facingMode = { ideal: 'environment' };
-        }
-        
-        // Set resolution based on quality
-        switch (quality) {
-          case 'high':
-            videoConstraints.width = { ideal: 1280 };
-            videoConstraints.height = { ideal: 720 };
-            break;
-          case 'medium':
-            videoConstraints.width = { ideal: 640 };
-            videoConstraints.height = { ideal: 480 };
-            break;
-          case 'low':
-            videoConstraints.width = { ideal: 320 };
-            videoConstraints.height = { ideal: 240 };
-            break;
-          case 'minimal':
-            // Just use defaults
-            break;
-        }
-        
-        constraints.video = videoConstraints;
-        return constraints;
-      };
-      
-      // Progressive fallback strategy
-      const tryGetStream = async (): Promise<MediaStream> => {
-        const attempts = [
-          // 1. Try with selected camera at high quality
-          { desc: 'selected camera (high quality)', fn: async () => {
-            if (!selectedCamera) throw new Error('No camera selected');
-            return navigator.mediaDevices.getUserMedia(createConstraints(selectedCamera, 'high'));
-          }},
-          // 2. Try with selected camera at medium quality
-          { desc: 'selected camera (medium quality)', fn: async () => {
-            if (!selectedCamera) throw new Error('No camera selected');
-            return navigator.mediaDevices.getUserMedia(createConstraints(selectedCamera, 'medium'));
-          }},
-          // 3. Try with environment facing camera
-          { desc: 'environment facing camera', fn: async () => {
-            return navigator.mediaDevices.getUserMedia({
-              video: { facingMode: 'environment' },
-              audio: false
-            });
-          }},
-          // 4. Try with any camera
-          { desc: 'any camera', fn: async () => {
-            return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-          }},
-          // 5. Safari/iOS specific attempt
-          { desc: 'iOS/Safari specific', fn: async () => {
-            // Special handling for Safari and iOS
-            if (isiOS || isSafari) {
-              return navigator.mediaDevices.getUserMedia({
-                video: {
-                  facingMode: 'environment',
-                  width: { ideal: 320 },
-                  height: { ideal: 240 }
-                },
-                audio: false
-              });
-            }
-            throw new Error('Not Safari/iOS');
-          }},
-          // 6. Last resort - minimal constraints
-          { desc: 'minimal constraints', fn: async () => {
-            return navigator.mediaDevices.getUserMedia({ video: {}, audio: false });
-          }}
-        ];
-        
-        // Try each method in sequence until one works
-        for (const attempt of attempts) {
-          try {
-            logDebug(`Trying camera with ${attempt.desc}`);
-            const stream = await attempt.fn();
-            logDebug(`Successfully got camera stream with ${attempt.desc}`);
-            return stream;
-          } catch (err) {
-            logDebug(`Failed with ${attempt.desc}:`, err);
-            // Continue to next attempt
-          }
-        }
-        
-        // If we get here, all attempts failed
-        throw new Error('All camera initialization attempts failed');
-      };
-      
-      // Start the camera with our progressive strategy
-      const stream = await tryGetStream();
-      
-      // Handle the successful stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        
-        // Safari/iOS sometimes needs a specific playsinline attribute
-        videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.setAttribute('webkit-playsinline', 'true');
-        
-        // Set up event handlers for video element
-        videoRef.current.onloadedmetadata = () => {
-          logDebug('Video metadata loaded');
-          if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                logDebug('Camera video playback started');
-                setCameraStatus('active');
-                setIsCameraReady(true);
-                
-                // Get video track info for debugging
-                const videoTracks = stream.getVideoTracks();
-                if (videoTracks.length > 0) {
-                  const settings = videoTracks[0].getSettings();
-                  logDebug('Video track settings:', settings);
-                }
-              })
-              .catch(e => {
-                handleCameraError(e, 'video.play');
-              });
-          }
-        };
-        
-        videoRef.current.onerror = (e) => {
-          handleCameraError(e, 'video.error');
-        };
-      } else {
-        throw new Error('Video element not available');
-      }
-    } catch (err) {
-      handleCameraError(err, 'startCamera');
-    }
-  };
-
-  // Track when camera is ready to use
-  
-  // Effect for camera setup and cleanup
-  useEffect(() => {
-    // Initialization logic
-    if (selectedCamera) {
-      startCamera();
-    }
-    
-    // Cleanup function
-    return () => {
-      // Clean up barcode scanner
-      if (barcodeScannerIntervalRef.current) {
-        clearInterval(barcodeScannerIntervalRef.current);
-        barcodeScannerIntervalRef.current = null;
-      }
-      
-      // Clean up camera stream
-      if (streamRef.current) {
-        const tracks = streamRef.current.getTracks();
-        tracks.forEach((track) => {
-          console.log('Camera track stopped');
-          track.stop();
-        });
-        streamRef.current = null;
-      }
-      
-      // Clean up barcode reader
-      if (barcodeReaderRef.current) {
-        try {
-          barcodeReaderRef.current.reset();
-        } catch (err) {
-          console.warn('Error resetting barcode reader:', err);
-        }
-      }
-    };
-  }, [selectedCamera]);
-
-  // Initialize custom barcode scanner
-  useEffect(() => {
-    console.log('Custom barcode scanner initialized');
-    console.log('Native barcode support:', barcodeScanner.isNativeSupported());
-    console.log('Supported formats:', barcodeScanner.getSupportedFormats());
-    
-    // No cleanup needed as our scanner is stateless
-    return () => {
-      console.log('Barcode scanner cleanup');
-    };
-  }, []);
+  }, [isCameraReady, isScanningForBarcodes]);
 
   // Custom barcode scanner with improved reliability
   const startBarcodeScanner = () => {
@@ -573,17 +429,25 @@ const NutriLensPage: FC = () => {
       setError('Camera not initialized');
       return;
     }
+    console.log('Barcode scanner already running, not starting again');
+    return;
+  }
 
-    setBarcodeScannerActive(true);
-    setError(null);
-    console.log('Starting custom barcode scanner with 100ms interval...');
-    console.log('Native barcode support:', barcodeScanner.isNativeSupported());
+  if (!videoRef.current || !streamRef.current) {
+    setError('Camera not initialized');
+    return;
+  }
 
-    // Use our custom scanner with both video and canvas methods
-    barcodeScannerIntervalRef.current = window.setInterval(async () => {
+  setIsScanningForBarcodes(true);
+  setError(null);
+  console.log('Starting custom barcode scanner with 500ms interval...');
+  console.log('Native barcode support:', barcodeScanner.isNativeSupported());
+
+  // Use our custom scanner with both video and canvas methods
+  barcodeScannerIntervalRef.current = window.setInterval(async () => {
       try {
         if (!videoRef.current || !streamRef.current || !canvasRef.current) return;
-
+        
         // Check if video is ready and playing
         if (videoRef.current.readyState < 2 || videoRef.current.paused) return;
 
@@ -625,9 +489,9 @@ const NutriLensPage: FC = () => {
         if (barcode && barcode.length > 0) {
           console.log('✅ Barcode detected:', barcode);
           
-          if (barcode !== lastBarcode) {
+          if (barcode !== lastBarcodeValue) {
             console.log('🔍 New barcode found:', barcode);
-            setLastBarcode(barcode);
+            setLastBarcodeValue(barcode);
             stopBarcodeScanner();
             await lookupBarcodeProduct(barcode);
           }
@@ -635,26 +499,13 @@ const NutriLensPage: FC = () => {
       } catch (err) {
         // Only log unexpected errors
         console.warn('Barcode scanning error:', err);
-      }
-    }, 500); // Scan 2 times per second for better ZXing reliability
-  };
-  
-  // Stop barcode scanner
-  const stopBarcodeScanner = () => {
-    if (barcodeScannerIntervalRef.current) {
-      clearInterval(barcodeScannerIntervalRef.current);
-      barcodeScannerIntervalRef.current = null;
-      console.log('Barcode scanner stopped');
-    }
-    setBarcodeScannerActive(false);
   };
   
   // Capture image from camera feed
-  const captureImage = () => {
-    if (!videoRef.current || !canvasRef.current) {
-      setError('Camera not initialized');
-      return;
-    }
+  if (!videoRef.current || !canvasRef.current) {
+    setError('Camera not initialized');
+    return;
+  }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -723,6 +574,16 @@ const NutriLensPage: FC = () => {
     }
   };
 
+  // Stop barcode scanner
+  const stopBarcodeScanner = () => {
+    if (barcodeScannerIntervalRef.current) {
+      clearInterval(barcodeScannerIntervalRef.current);
+      barcodeScannerIntervalRef.current = null;
+      console.log('Barcode scanner stopped');
+    }
+    setIsScanningForBarcodes(false);
+  };
+  
   // Look up product by barcode
   const lookupBarcodeProduct = async (barcode: string) => {
     setIsLoading(true);
@@ -1106,8 +967,8 @@ const NutriLensPage: FC = () => {
       clearInterval(barcodeScannerIntervalRef.current);
       barcodeScannerIntervalRef.current = null;
     }
-    setBarcodeScannerActive(false);
-    setLastBarcode(null);
+    setIsScanningForBarcodes(false);
+    setLastBarcodeValue(null);
     
     // Reinitialize camera if we have a selected camera
     if (selectedCamera) {
@@ -1150,10 +1011,61 @@ const NutriLensPage: FC = () => {
     return 'text-red-600';
   };
   
-  return (
-    <div className="nutrilens-container">
-      <div className="scanner-header">
-        <h1>NutriLens Food Scanner</h1>
+  // Inline styles to ensure they override any conflicting styles
+  const inlineStyles = `
+    .app-container {
+      background: linear-gradient(135deg, rgba(25, 25, 35, 0.95), rgba(10, 10, 20, 0.9)) !important;
+      border: 3px solid #FF3D8A !important;
+      border-radius: 20px !important;
+      box-shadow: 0 0 30px rgba(181, 55, 247, 0.6) !important;
+      padding: 20px !important;
+      max-width: 800px !important;
+      margin: 0 auto !important;
+    }
+
+    .camera-container {
+      position: relative !important;
+      margin: 1rem auto !important;
+      max-width: 600px !important;
+      border-radius: 16px !important;
+      background: rgba(0, 0, 0, 0.2) !important;
+      backdrop-filter: blur(5px) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .camera-feed {
+      width: 100% !important;
+      border-radius: 16px !important;
+      border: 2px solid rgba(255, 255, 255, 0.3) !important;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.5) !important;
+    }
+
+    .scan-line {
+      position: absolute !important;
+      left: 5% !important;
+      right: 5% !important;
+      height: 4px !important;
+      background-color: #FF3D8A !important;
+      box-shadow: 0 0 15px #FF3D8A !important;
+      animation: scan-vertical 2s ease-in-out infinite !important;
+    }
+
+    .btn-primary {
+      background: linear-gradient(45deg, #FF3D8A, #B537F7) !important;
+      color: white !important;
+      box-shadow: 0 5px 15px rgba(181, 55, 247, 0.5) !important;
+    }
+
+    .btn-secondary {
+      background: linear-gradient(45deg, #00D4FF, #39FF14) !important;
+      color: black !important;
+      box-shadow: 0 5px 15px rgba(0, 212, 255, 0.5) !important;
+    }
+
+    @keyframes scan-vertical {
+      0% { transform: translateY(20px); opacity: 0.7; }
+      50% { transform: translateY(calc(100% - 40px)); opacity: 1; }
+      100% { transform: translateY(20px); opacity: 0.7; }
         <p>Scan food items to get detailed nutrition information</p>
       </div>
       
@@ -1214,8 +1126,8 @@ const NutriLensPage: FC = () => {
             <div className="card-header">
               <div>Camera Feed</div>
               <div className="select-container">
-                <select 
-                  value={selectedCamera} 
+                <select
+                  value={selectedCamera}
                   onChange={(e) => setSelectedCamera(e.target.value)}
                   className="select-styled"
                   disabled={cameraDevices.length === 0 || isLoading}
@@ -1261,22 +1173,23 @@ const NutriLensPage: FC = () => {
                 <video 
                   ref={videoRef} 
                   autoPlay 
+                  muted 
                   playsInline 
                   className="camera-feed"
                 />
                 <canvas ref={canvasRef} className="hidden" />
                 
                 <div className="camera-overlay">
-                  {barcodeScannerActive && (
+                  {isScanningForBarcodes && (
                     <div className="barcode-scanner-indicator">
-                      <div className="scan-line"></div>
+                      <div className="scanning-indicator"></div>
                       <div className="scanning-text">Scanning for barcodes...</div>
                     </div>
                   )}
                   
                   <div className="camera-status">
                     <div className="status-indicator"></div>
-                    <span>{barcodeScannerActive ? 'Barcode Scanner Active' : 'Camera Active'}</span>
+                    <span>{isScanningForBarcodes ? 'Scanner Active' : 'Camera Active'}</span>
                   </div>
                   
                   {/* Hidden file input */}
@@ -1306,23 +1219,60 @@ const NutriLensPage: FC = () => {
             </div>
           </div>
           
-          {/* Action buttons always at the bottom */}
+          <div className="camera-container">
+            {/* Video element for camera feed */}
+            <video ref={videoRef} className="camera-feed" />
+            
+            {/* Hidden canvas for image processing */}
+            <canvas ref={canvasRef} className="hidden" />
+            
+            <div className="camera-overlay">
+              {isScanningForBarcodes && (
+                <div className="barcode-scanner-indicator">
+                  <div className="scanning-indicator"></div>
+                  <div className="scanning-text">Scanning for barcodes...</div>
+                </div>
+              )}
+              
+              <div className="camera-status">
+                <div className="status-indicator"></div>
+                <span>{isScanningForBarcodes ? 'Scanner Active' : 'Camera Active'}</span>
+              </div>
+              
+              {/* Hidden file input */}
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                onChange={handleFileUpload}
+              />
+              
+              {/* Display last scanned barcode */}
+              {lastBarcodeValue && (
+                <div className="last-barcode">
+                  <strong>Last Barcode:</strong> {lastBarcodeValue}
+                </div>
+              )}
+            </div>
+          
+          {/* Action buttons at the bottom */}
           <div className="bottom-actions">
             <div className="button-group">
               {/* Barcode scanner toggle button */}
               <button
-                className={`btn ${barcodeScannerActive ? 'btn-secondary' : 'btn-primary'}`}
-                onClick={() => barcodeScannerActive ? stopBarcodeScanner() : startBarcodeScanner()}
+                className={isScanningForBarcodes ? "btn-secondary" : "btn-scan"}
+                onClick={toggleBarcodeScanner}
                 disabled={!streamRef.current || isLoading}
               >
                 <Barcode size={18} />
-                {barcodeScannerActive ? 'Stop Scanning' : 'Scan Barcode'}
+                {isScanningForBarcodes ? 'Stop Scanning' : 'Scan Barcode'}
               </button>
               
               {/* Capture button */}
               <button
-                className="btn btn-primary capture"
-                onClick={() => captureImage()}
+                className="btn-scan"
+                onClick={captureImage}
                 disabled={!streamRef.current || isLoading}
               >
                 <Camera size={18} />
@@ -1331,7 +1281,7 @@ const NutriLensPage: FC = () => {
               
               {/* Upload button */}
               <button 
-                className="btn btn-secondary upload"
+                className="btn-secondary"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
               >
@@ -1352,7 +1302,8 @@ const NutriLensPage: FC = () => {
           )}
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

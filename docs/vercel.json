@@ -1,7 +1,8 @@
 {
-  "buildCommand": "npx @mintlify/cli@latest build",
-  "outputDirectory": ".mintlify/build",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
-  "devCommand": "npx mintlify dev",
-  "installCommand": "npm install"
+  "buildCommand": "npx @mintlify/cli@latest build",
+  "devCommand": "npx @mintlify/cli@latest dev",
+  "installCommand": "npm install",
+  "outputDirectory": ".mintlify/build"
 }

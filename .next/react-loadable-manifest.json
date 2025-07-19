@@ -1,0 +1,38 @@
+{
+  "..\\node_modules\\.pnpm\\next@15.4.1_react-dom@19.1.0_react@19.1.0__react@19.1.0\\node_modules\\next\\dist\\client\\index.js -> ../pages/_app": {
+    "id": "..\\node_modules\\.pnpm\\next@15.4.1_react-dom@19.1.0_react@19.1.0__react@19.1.0\\node_modules\\next\\dist\\client\\index.js -> ../pages/_app",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_pnpm_next_15_4_1_react-dom_19_1_0_react_19_1_0__react_19_1_0_-608c78.js"
+    ]
+  },
+  "..\\node_modules\\.pnpm\\next@15.4.1_react-dom@19.1.0_react@19.1.0__react@19.1.0\\node_modules\\next\\dist\\client\\index.js -> ../pages/_error": {
+    "id": "..\\node_modules\\.pnpm\\next@15.4.1_react-dom@19.1.0_react@19.1.0__react@19.1.0\\node_modules\\next\\dist\\client\\index.js -> ../pages/_error",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_pnpm_next_15_4_1_react-dom_19_1_0_react_19_1_0__react_19_1_0_-170bdc.js"
+    ]
+  },
+  "features\\NutriLens\\NutriLensPage.tsx -> @zxing/browser": {
+    "id": "features\\NutriLens\\NutriLensPage.tsx -> @zxing/browser",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_pnpm_zxing_browser_0_1_5__zxing_library_0_21_3_node_modules_z-b306a3.js"
+    ]
+  },
+  "features\\NutriLens\\NutriLensPage.tsx -> @zxing/library": {
+    "id": "features\\NutriLens\\NutriLensPage.tsx -> @zxing/library",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_pnpm_zxing_library_0_21_3_node_modules_zxing_library_esm_index_js.js"
+    ]
+  },
+  "utils\\barcodeScanner.ts -> @zxing/browser": {
+    "id": "utils\\barcodeScanner.ts -> @zxing/browser",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_pnpm_zxing_browser_0_1_5__zxing_library_0_21_3_node_modules_z-b306a3.js"
+    ]
+  },
+  "utils\\barcodeScanner.ts -> @zxing/library": {
+    "id": "utils\\barcodeScanner.ts -> @zxing/library",
+    "files": [
+      "static/chunks/_pages-dir-browser_node_modules_pnpm_zxing_library_0_21_3_node_modules_zxing_library_esm_index_js.js"
+    ]
+  }
+}

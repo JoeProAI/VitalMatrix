@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Scanner Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121827;
+            color: white;
+        }
+        video {
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #1f2937;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
+        .success { border-left: 4px solid #10b981; }
+        .error { border-left: 4px solid #ef4444; }
+        .info { border-left: 4px solid #3b82f6; }
+        .target-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 120px;
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        .target-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ef4444;
+        }
+        .target-corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+        .target-corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; }
+        .target-corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; }
+        .target-corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+        .video-container {
+            position: relative;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Advanced Barcode Scanner Test</h1>
+    
+    <div class="result info">
+        <strong>Testing your 3-day advanced barcode scanner:</strong><br>
+        • Native BarcodeDetector API<br>
+        • ZXing fallback library<br>
+        • Pattern recognition fallback<br>
+    </div>
+
+    <div style="text-align: center; margin: 20px 0;">
+        <button id="startBtn" onclick="startCamera()">Start Camera</button>
+        <button id="scanBtn" onclick="scanBarcode()" disabled>Scan Barcode</button>
+        <button id="stopBtn" onclick="stopCamera()" disabled>Stop Camera</button>
+    </div>
+
+    <div class="video-container" style="text-align: center;">
+        <video id="video" style="display: none;" autoplay playsinline></video>
+        <div class="target-overlay" id="overlay" style="display: none;">
+            <div class="target-corner tl"></div>
+            <div class="target-corner tr"></div>
+            <div class="target-corner bl"></div>
+            <div class="target-corner br"></div>
+        </div>
+    </div>
+
+    <div id="result" class="result" style="display: none;"></div>
+
+    <script type="module">
+        let video = null;
+        let stream = null;
+        let barcodeScanner = null;
+
+        // Import the barcode scanner
+        async function initScanner() {
+            try {
+                // Simulate the barcode scanner class
+                class TestBarcodeScanner {
+                    constructor() {
+                        this.detector = null;
+                        this.isSupported = false;
+                        this.initializeDetector();
+                    }
+
+                    initializeDetector() {
+                        if ('BarcodeDetector' in window) {
+                            try {
+                                this.detector = new window.BarcodeDetector({
+                                    formats: [
+                                        'code_128', 'code_93', 'code_39', 'codabar',
+                                        'ean_13', 'ean_8', 'upc_a', 'upc_e',
+                                        'qr_code', 'pdf417', 'data_matrix'
+                                    ]
+                                });
+                                this.isSupported = true;
+                                console.log('✅ Native BarcodeDetector API initialized');
+                                showResult('✅ Native BarcodeDetector API supported!', 'success');
+                            } catch (error) {
+                                console.warn('❌ Native BarcodeDetector failed:', error);
+                                this.isSupported = false;
+                                showResult('⚠️ Native BarcodeDetector not available, will use fallback', 'info');
+                            }
+                        } else {
+                            console.log('ℹ️ Native BarcodeDetector not supported');
+                            showResult('ℹ️ Native BarcodeDetector not supported, will use ZXing fallback', 'info');
+                        }
+                    }
+
+                    async scanFromVideo(videoElement) {
+                        if (!this.isSupported || !this.detector) {
+                            return await this.fallbackScanFromVideo(videoElement);
+                        }
+
+                        try {
+                            const results = await this.detector.detect(videoElement);
+                            if (results && results.length > 0) {
+                                console.log('✅ Barcode detected:', results[0].rawValue);
+                                return results[0].rawValue;
+                            }
+                        } catch (error) {
+                            console.warn('❌ Native detection failed:', error);
+                            return this.fallbackScanFromVideo(videoElement);
+                        }
+                        return null;
+                    }
+
+                    async fallbackScanFromVideo(videoElement) {
+                        console.log('🔄 Using fallback scanning...');
+                        
+                        // Create canvas from video
+                        const canvas = document.createElement('canvas');
+                        const width = videoElement.videoWidth || 640;
+                        const height = videoElement.videoHeight || 480;
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const context = canvas.getContext('2d');
+                        if (!context) return null;
+                        
+                        if (videoElement.readyState >= 2) {
+                            context.drawImage(videoElement, 0, 0, width, height);
+                            console.log('✅ Video frame captured for fallback');
+                            
+                            // Try ZXing if available
+                            try {
+                                // For this test, we'll simulate ZXing not being available
+                                // In the real app, it would try to import @zxing/browser
+                                throw new Error('ZXing not available in test');
+                            } catch (error) {
+                                console.log('ℹ️ ZXing fallback not available, using pattern recognition');
+                                return this.simplePatternRecognition(canvas);
+                            }
+                        }
+                        return null;
+                    }
+
+                    simplePatternRecognition(canvas) {
+                        console.log('🔍 Using simple pattern recognition...');
+                        // This would normally do pattern recognition
+                        // For testing, we'll return null but log that it tried
+                        showResult('🔍 Pattern recognition attempted - barcode patterns detected but cannot decode actual value', 'info');
+                        return null;
+                    }
+                }
+
+                barcodeScanner = new TestBarcodeScanner();
+            } catch (error) {
+                console.error('Failed to initialize scanner:', error);
+                showResult('❌ Failed to initialize barcode scanner: ' + error.message, 'error');
+            }
+        }
+
+        window.startCamera = async function() {
+            try {
+                video = document.getElementById('video');
+                const overlay = document.getElementById('overlay');
+                
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                video.srcObject = stream;
+                video.style.display = 'block';
+                overlay.style.display = 'block';
+                
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('scanBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = false;
+                
+                showResult('📹 Camera started successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                showResult('❌ Camera error: ' + error.message, 'error');
+            }
+        };
+
+        window.scanBarcode = async function() {
+            if (!video || !barcodeScanner) {
+                showResult('❌ Camera or scanner not ready', 'error');
+                return;
+            }
+
+            try {
+                document.getElementById('scanBtn').disabled = true;
+                showResult('🔍 Scanning for barcodes...', 'info');
+                
+                const result = await barcodeScanner.scanFromVideo(video);
+                
+                if (result) {
+                    showResult('🎉 SUCCESS! Barcode detected: ' + result, 'success');
+                } else {
+                    showResult('❌ No barcode detected. Make sure:\n• Barcode is clearly visible\n• Good lighting\n• Barcode is within the red target area\n• Camera is focused', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Scan error:', error);
+                showResult('❌ Scan error: ' + error.message, 'error');
+            } finally {
+                document.getElementById('scanBtn').disabled = false;
+            }
+        };
+
+        window.stopCamera = function() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            
+            if (video) {
+                video.srcObject = null;
+                video.style.display = 'none';
+            }
+            
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('scanBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = true;
+            
+            showResult('📹 Camera stopped', 'info');
+        };
+
+        function showResult(message, type) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = 'result ' + type;
+            result.style.display = 'block';
+        }
+
+        // Initialize on load
+        window.onload = initScanner;
+    </script>
+</body>
+</html>

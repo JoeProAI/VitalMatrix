@@ -1,0 +1,82 @@
+/* VitalMatrix Custom Styling */
+
+:root {
+  --primary-blue: #3b82f6;
+  --dark-blue: #2563eb;
+  --light-blue: #60a5fa;
+  --dark-bg: #121827;
+  --secondary-bg: #1e293b;
+  --text-light: #f8fafc;
+  --text-secondary: #94a3b8;
+}
+
+/* Button styles */
+.button {
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+}
+
+.button-primary {
+  background-color: var(--primary-blue) !important;
+  border: none !important;
+}
+
+.button-primary:hover {
+  background-color: var(--dark-blue) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600 !important;
+}
+
+h1 {
+  font-size: 2.5rem !important;
+}
+
+/* Navigation styling */
+.sidebar-nav-item {
+  border-radius: 6px !important;
+}
+
+.sidebar-nav-item:hover {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+.sidebar-nav-item-active {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  border-left: 3px solid var(--primary-blue) !important;
+}
+
+/* Code blocks */
+.code-block {
+  background-color: #0f172a !important;
+  border-radius: 8px !important;
+}
+
+/* Table styling */
+table {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+th {
+  background-color: var(--secondary-bg) !important;
+}
+
+/* Card styling */
+.card {
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background-color: var(--secondary-bg) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2) !important;
+}

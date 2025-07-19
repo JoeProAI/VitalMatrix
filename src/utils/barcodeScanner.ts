@@ -59,7 +59,7 @@ export class CustomBarcodeScanner {
         this.isSupported = false;
       }
     } else {
-      console.log('ℹ️  Native BarcodeDetector API not supported, using fallback');
+      console.log('📱 Using enhanced barcode scanning (compatible mode)');
       this.isSupported = false;
     }
   }

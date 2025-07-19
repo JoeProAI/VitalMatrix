@@ -1,0 +1,27 @@
+name: vitalmatrix-production
+image: node:18-slim
+resources:
+  cpu: 4
+  memory: 8
+  disk: 20
+environment:
+  NODE_ENV: production
+  PORT: "3000"
+  PROXY_PORT: "3001"
+  PYTHONPATH: "/workspace"
+commands:
+  - name: install-deps
+    command: npm install
+  - name: build
+    command: npm run build
+  - name: start-server
+    command: npm run server
+  - name: start-frontend
+    command: npm run preview
+ports:
+  - 3000
+  - 3001
+labels:
+  app: vitalmatrix
+  environment: production
+  version: "1.0.0"

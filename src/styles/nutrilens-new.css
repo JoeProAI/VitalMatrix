@@ -1,0 +1,532 @@
+/* NUTRILENS NEW STYLING - SLEEK DARK MODE */
+
+/* PROFESSIONAL DARK MODE STYLING */
+/* Main container */
+.app-container {
+  background: #121218 !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  padding: 20px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  max-width: 800px !important;
+  margin: 0 auto !important;
+  min-height: 80vh !important;
+}
+
+/* Scanner header */
+.scanner-header {
+  text-align: center !important;
+  margin-bottom: 20px !important;
+  color: #e0e0e0 !important;
+}
+
+.scanner-header h1 {
+  color: #e0e0e0 !important;
+  font-size: 1.8rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  letter-spacing: -0.3px !important;
+}
+
+.scanner-header p {
+  font-size: 1rem !important;
+  opacity: 0.8 !important;
+  max-width: 80% !important;
+  margin: 0 auto !important;
+}
+
+.camera-container {
+  position: relative !important;
+  margin: 1.5rem auto !important;
+  max-width: 600px !important;
+  width: 100% !important;
+  height: auto !important;
+  overflow: hidden !important;
+  border-radius: 8px !important;
+  background: #1a1a22 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.camera-container:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+.camera-feed {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 16/9 !important;
+  display: block !important;
+  border-radius: 8px !important;
+  border: none !important;
+  object-fit: cover !important;
+}
+
+.scanner-active {
+  animation: subtle-glow 3s infinite !important;
+}
+
+@keyframes subtle-glow {
+  0% { box-shadow: 0 0 5px rgba(95, 133, 229, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(95, 133, 229, 0.5); }
+  100% { box-shadow: 0 0 5px rgba(95, 133, 229, 0.3); }
+}
+
+/* Removed scan line animation - replaced with subtle scanning indicator */
+.scanning-indicator {
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  background-color: #4a6bbd !important;
+  opacity: 0.9 !important;
+  animation: pulse-opacity 2s infinite !important;
+}
+
+@keyframes pulse-opacity {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+/* Card styling */
+.card {
+  background: rgba(25, 26, 35, 0.7) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  margin-bottom: 24px !important;
+}
+
+.card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 15px 20px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  font-weight: bold !important;
+}
+
+.card-footer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 15px 20px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 0.9rem !important;
+}
+
+/* Select styling */
+.select-container {
+  position: relative !important;
+}
+
+.select-styled {
+  appearance: none !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  padding: 8px 30px 8px 15px !important;
+  border-radius: 20px !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+}
+
+.select-icon {
+  position: absolute !important;
+  right: 10px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  pointer-events: none !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.scanner-label {
+  position: absolute !important;
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background-color: #B537F7 !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  border-radius: 20px !important;
+  font-weight: bold !important;
+  font-size: 14px !important;
+  box-shadow: 0 0 15px rgba(181, 55, 247, 0.5) !important;
+  z-index: 100 !important;
+}
+
+/* Action buttons */
+.btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-weight: 500 !important;
+  padding: 10px 20px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  letter-spacing: 0.3px !important;
+  font-size: 14px !important;
+}
+
+.btn-primary {
+  background: #2d3748 !important;
+  color: #e0e0e0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid #3d4a63 !important;
+}
+
+.btn-secondary {
+  background: #1e212d !important;
+  color: #e0e0e0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid #2a2e3c !important;
+}
+
+.btn:hover {
+  transform: translateY(-2px) !important;
+  filter: brightness(1.1) !important;
+}
+
+.btn:active {
+  transform: translateY(1px) !important;
+  filter: brightness(0.95) !important;
+}
+
+.btn.capture {
+  background: #2d3748 !important;
+  position: relative !important;
+}
+
+.btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+.button-group {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  justify-content: center !important;
+  margin: 20px 0 !important;
+}
+
+.scanner-button:hover {
+  transform: translateY(-3px) scale(1.05) !important;
+  box-shadow: 0 8px 20px rgba(255, 61, 138, 0.6) !important;
+}
+
+@keyframes pulse-button {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Loading animation */
+.loading-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000 !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+  color: white !important;
+  text-align: center !important;
+  gap: 20px !important;
+}
+
+.loading-spinner {
+  width: 60px !important;
+  height: 60px !important;
+  border: 4px solid rgba(255, 255, 255, 0.2) !important;
+  border-left-color: #FF3D8A !important;
+  border-top-color: #B537F7 !important;
+  border-radius: 50% !important;
+  animation: spin 1s linear infinite !important;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error container */
+.error-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 30px 20px !important;
+  color: white !important;
+  text-align: center !important;
+  gap: 15px !important;
+}
+
+.error-icon {
+  color: #FF3D8A !important;
+  margin-bottom: 10px !important;
+}
+
+.retry-button {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 20px !important;
+  margin-top: 15px !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+}
+
+.retry-button:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Results section */
+.captured-image {
+  display: flex !important;
+  justify-content: center !important;
+  margin: 20px 0 !important;
+  position: relative !important;
+}
+
+.food-image {
+  max-width: 100% !important;
+  border-radius: 16px !important;
+  border: 2px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+  max-height: 400px !important;
+  object-fit: contain !important;
+}
+
+.image-source {
+  position: absolute !important;
+  top: 15px !important;
+  right: 15px !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  color: white !important;
+  padding: 5px 10px !important;
+  border-radius: 15px !important;
+  font-size: 12px !important;
+  font-weight: bold !important;
+}
+
+/* Additional foods */
+.additional-foods {
+  background: rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(5px) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+  border-radius: 16px !important;
+  padding: 15px !important;
+  margin: 20px 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.additional-foods h3 {
+  color: white !important;
+  margin-bottom: 10px !important;
+  font-size: 1.2rem !important;
+}
+
+.detected-foods-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.detected-food-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  color: white !important;
+  padding: 8px 15px !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.input-group {
+  margin-bottom: 15px !important;
+}
+
+.form-control {
+  width: 100% !important;
+  padding: 10px 12px !important;
+  border-radius: 4px !important;
+  border: 1px solid #2a2e3c !important;
+  background: #1e212d !important;
+  color: #a0a0a0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.form-control:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(74, 107, 189, 0.25) !important;
+  border-color: #3d4a63 !important;
+}
+
+.camera-status {
+  position: absolute !important;
+  top: 20px !important;
+  left: 20px !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  border-radius: 20px !important;
+  font-size: 14px !important;
+  z-index: 100 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.4) !important;
+}
+
+.status-dot {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+}
+
+/* Badge */
+.badge {
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.badge-primary {
+  background: #2d3748 !important;
+  color: #a0a0a0 !important;
+  border: 1px solid #3d4a63 !important;
+}
+
+/* Bottom actions area */
+/* NutriLens Dark Mode UI - v2.0.0 */
+.bottom-actions {
+  position: sticky !important;
+  bottom: 20px !important;
+  width: 100% !important;
+  z-index: 50 !important;
+  padding: 10px 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* Hidden */
+.hidden {
+  display: none !important;
+}
+
+@keyframes pulse-dot {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Camera overlay styles */
+.camera-overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  pointer-events: none !important;
+  z-index: 10 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(0deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(0,0,0,0.5) 100%) !important;
+}
+
+/* Barcode scanner indicator */
+.barcode-scanner-indicator {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  padding-bottom: 20px !important;
+}
+
+.scanning-text {
+  background: rgba(18, 18, 24, 0.9) !important;
+  color: #a0a0a0 !important;
+  padding: 8px 16px !important;
+  border-radius: 4px !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  pointer-events: auto !important;
+  user-select: none !important;
+  max-width: 80% !important;
+  text-align: center !important;
+}
+
+/* Status indicator */
+.camera-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: rgba(18, 18, 24, 0.85) !important;
+  border-radius: 4px !important;
+  padding: 5px 10px !important;
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  color: #a0a0a0 !important;
+  font-size: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  z-index: 100 !important;
+}
+
+.status-indicator {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background-color: #4a6bbd !important;
+  animation: pulse-dot 2s infinite !important;
+}
+
+/* Last barcode result */
+.last-barcode {
+  position: absolute !important;
+  bottom: 12px !important;
+  left: 12px !important;
+  background: rgba(18, 18, 24, 0.85) !important;
+  color: #a0a0a0 !important;
+  padding: 5px 10px !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  z-index: 100 !important;
+  max-width: 80% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}

@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // DEVELOPMENT RULES - More permissive for testing
+    // User profiles - allow authenticated users to create/read/write profiles
+    match /userProfiles/{userId} {
+      allow read, write: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Healthcare facility reviews - authenticated users can read all, write their own
+    match /facilityReviews/{reviewId} {
+      allow read: if true; // Public read for community features
+      allow create: if request.auth != null && 
+                   request.auth.uid == request.resource.data.userId;
+      allow update, delete: if request.auth != null && 
+                           request.auth.uid == resource.data.userId;
+    }
+    
+    // Healthcare visits - allow authenticated users
+    match /healthcareVisits/{visitId} {
+      allow read, write: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Nutrition entries - allow authenticated users (CRITICAL for barcode scanner)
+    match /nutritionEntries/{entryId} {
+      allow read, write: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Activity logs - allow authenticated users
+    match /activityLogs/{logId} {
+      allow read, write: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Public healthcare facilities data (read-only for now)
+    match /healthcareFacilities/{facilityId} {
+      allow read: if true;
+      allow write: if request.auth != null; // Authenticated users can contribute facility data
+    }
+    
+    // Helper function to validate review data
+    function validateReviewData(data) {
+      return data.keys().hasAll(['userId', 'facilityId', 'rating', 'comment', 'timestamp']) &&
+             data.rating is number &&
+             data.rating >= 1 &&
+             data.rating <= 5 &&
+             data.comment is string &&
+             data.comment.size() <= 1000 &&
+             data.userId is string &&
+             data.facilityId is string &&
+             data.timestamp is timestamp;
+    }
+  }
+}
