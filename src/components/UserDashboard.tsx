@@ -207,11 +207,11 @@ const UserDashboard: React.FC = () => {
                 <span className="hidden sm:block">NutriLens</span>
               </button>
               <button
-                onClick={() => navigate('/community')}
+                onClick={() => navigate('/community-pulse')}
                 className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/20 p-2 rounded-lg"
               >
                 <Users className="h-5 w-5" />
-                <span className="hidden sm:block">Community</span>
+                <span className="hidden sm:block">Community Pulse</span>
               </button>
               <div className="text-right">
                 <p className="text-sm font-medium">{profile.displayName}</p>

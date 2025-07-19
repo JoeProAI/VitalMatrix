@@ -2,15 +2,33 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Circle } from '@react-google-maps/api';
-import { Map, Clock3, Star, AlertCircle, User, Activity, UserPlus, FileEdit, Home, Scan, Users } from 'lucide-react';
 import { 
-  getNearbyFacilities, 
+  Map, 
+  Star, 
+  Clock3, 
+  User, 
+  MapPin, 
+  Phone, 
+  ExternalLink,
+  ArrowLeft,
+  Users,
+  Scan,
+  AlertCircle,
+  Activity,
+  FileEdit,
+  UserPlus 
+} from 'lucide-react';
+import { 
   getFacilityById, 
   getFacilityReviews, 
   addFacilityReview, 
-  updateWaitTime 
+  updateWaitTime,
+  checkWaitTimeExpiry,
+  resetExpiredWaitTime,
+  getNearbyFacilities,
+  addFacility 
 } from '../firebase/communityPulseService';
-import { searchHealthcareFacilities, getPlaceDetails } from '../services/googlePlacesService';
+import { searchHealthcareFacilities } from '../services/googlePlacesService';
 import { HealthcareFacility, FacilityReview, MapPosition, CrowdingLevelColors } from '../types/communityPulse';
 
 // Styles
@@ -73,6 +91,7 @@ const CommunityPulse: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [activeView, setActiveView] = useState<'map' | 'reviews' | 'times'>('map');
   const mapRef = useRef<google.maps.Map | null>(null);
 
   // Load Google Maps API (only if key is available)
@@ -113,8 +132,73 @@ const CommunityPulse: React.FC = () => {
         index === self.findIndex(f => f.googlePlaceId === facility.googlePlaceId)
       );
       
-      setFacilities(uniqueFacilities);
-      console.log(`Loaded ${uniqueFacilities.length} real healthcare facilities:`, uniqueFacilities.map(f => f.name));
+      // Ensure facilities have Firebase IDs and get existing data
+      const facilitiesWithFirebaseData = await Promise.all(
+        uniqueFacilities.map(async (facility) => {
+          try {
+            // Check if facility already exists in Firebase by googlePlaceId
+            const existingFacilities = await getNearbyFacilities(position, radius / 1000);
+            const existingFacility = existingFacilities.find(f => 
+              f.googlePlaceId === facility.googlePlaceId
+            );
+            
+            if (existingFacility) {
+              // Use existing facility data with Firebase ID
+              const mergedFacility = {
+                ...facility,
+                id: existingFacility.id,
+                currentWaitTime: existingFacility.currentWaitTime || 0,
+                lastWaitTimeUpdate: existingFacility.lastWaitTimeUpdate,
+                averageRating: existingFacility.averageRating || 0,
+                ratingCount: existingFacility.ratingCount || 0,
+                crowdingLevel: existingFacility.crowdingLevel
+              };
+              
+              // Check and reset expired wait times
+              if (mergedFacility.currentWaitTime && mergedFacility.lastWaitTimeUpdate) {
+                const isExpired = checkWaitTimeExpiry(mergedFacility.lastWaitTimeUpdate, mergedFacility.currentWaitTime);
+                if (isExpired) {
+                  try {
+                    await resetExpiredWaitTime(mergedFacility.id!);
+                    console.log(`Reset expired wait time for ${mergedFacility.name}`);
+                    return {
+                      ...mergedFacility,
+                      currentWaitTime: 0,
+                      lastWaitTimeUpdate: new Date()
+                    };
+                  } catch (error) {
+                    console.error(`Failed to reset wait time for ${mergedFacility.name}:`, error);
+                  }
+                }
+              }
+              
+              return mergedFacility;
+            } else {
+              // New facility - add to Firebase to get an ID
+              try {
+                const facilityId = await addFacility(facility);
+                return {
+                  ...facility,
+                  id: facilityId,
+                  currentWaitTime: 0,
+                  averageRating: 0,
+                  ratingCount: 0
+                };
+              } catch (error) {
+                console.error(`Failed to add facility ${facility.name} to Firebase:`, error);
+                // Return facility without Firebase ID as fallback
+                return facility;
+              }
+            }
+          } catch (error) {
+            console.error(`Error processing facility ${facility.name}:`, error);
+            return facility;
+          }
+        })
+      );
+      
+      setFacilities(facilitiesWithFirebaseData);
+      console.log(`Loaded ${facilitiesWithFirebaseData.length} real healthcare facilities:`, facilitiesWithFirebaseData.map((f: HealthcareFacility) => f.name));
     } catch (err) {
       console.error('Error loading real facilities:', err);
       setError('Failed to load healthcare facilities. Please try again.');
@@ -418,11 +502,116 @@ const CommunityPulse: React.FC = () => {
 
   return (
     <div className="community-pulse-container">
+      {/* Navigation Header */}
+      <div className="bg-[#1e293b] border-b border-gray-700 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200 hover:shadow-lg hover:shadow-blue-500/20 p-2 rounded-lg"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="hidden sm:block">Home</span>
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200 hover:shadow-lg hover:shadow-blue-500/20 p-2 rounded-lg"
+              >
+                <User className="h-5 w-5" />
+                <span className="hidden sm:block">Dashboard</span>
+              </button>
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-[#3b82f6] mr-3" />
+                <h1 className="text-xl font-bold text-white">Community Pulse</h1>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/nutrilens')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 p-2 rounded-lg"
+              >
+                <Scan className="h-5 w-5" />
+                <span className="hidden sm:block">NutriLens</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div className="community-pulse-header">
-        <h1>Community Pulse</h1>
         <p className="subtitle">
           Find healthcare facilities near you, check wait times, and share your experiences
         </p>
+        
+        {/* Action Buttons */}
+        <div className="action-buttons" style={{
+          display: 'flex',
+          gap: '1rem',
+          marginTop: '1rem',
+          flexWrap: 'wrap',
+          justifyContent: 'center'
+        }}>
+          <button 
+            className="action-btn"
+            onClick={() => setActiveView('map')}
+            style={{
+              backgroundColor: activeView === 'map' ? '#3b82f6' : '#1e293b',
+              color: '#e2e8f0',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Map size={16} />
+            Map View
+          </button>
+          
+          <button 
+            className="action-btn"
+            onClick={() => setActiveView('reviews')}
+            style={{
+              backgroundColor: activeView === 'reviews' ? '#3b82f6' : '#1e293b',
+              color: '#e2e8f0',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Star size={16} />
+            Reviews
+          </button>
+          
+          <button 
+            className="action-btn"
+            onClick={() => setActiveView('times')}
+            style={{
+              backgroundColor: activeView === 'times' ? '#3b82f6' : '#1e293b',
+              color: '#e2e8f0',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Clock3 size={16} />
+            Wait Times
+          </button>
+        </div>
       </div>
 
       <div className="community-pulse-controls">

@@ -204,10 +204,20 @@ const HomePageContent: React.FC = () => {
                   {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
                 
-                {/* Unique angular button */}
-                <a href="/login" className="relative bg-ocean text-pearl px-8 py-3 font-medium hover:bg-ocean-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-block" style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}>
-                  Get Started
-                </a>
+                {/* Dashboard/Sign In Button */}
+                {currentUser ? (
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="relative bg-forest text-pearl px-8 py-3 font-medium hover:bg-forest-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-block"
+                    style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}
+                  >
+                    Dashboard
+                  </button>
+                ) : (
+                  <a href="/login" className="relative bg-ocean text-pearl px-8 py-3 font-medium hover:bg-ocean-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-block" style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}>
+                    Get Started
+                  </a>
+                )}
               </div>
 
               <button
@@ -233,9 +243,19 @@ const HomePageContent: React.FC = () => {
                   {isDarkMode ? <Sun className="w-5 h-5 mr-2" /> : <Moon className="w-5 h-5 mr-2" />}
                   {isDarkMode ? 'Light Mode' : 'Dark Mode'}
                 </button>
-                <a href="/login" className="w-full bg-ocean text-pearl px-6 py-3 font-medium inline-block text-center" style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}>
-                  Get Started
-                </a>
+                {currentUser ? (
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="w-full bg-forest text-pearl px-6 py-3 font-medium inline-block text-center"
+                    style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}
+                  >
+                    Dashboard
+                  </button>
+                ) : (
+                  <a href="/login" className="w-full bg-ocean text-pearl px-6 py-3 font-medium inline-block text-center" style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}>
+                    Get Started
+                  </a>
+                )}
               </div>
             </div>
           )}

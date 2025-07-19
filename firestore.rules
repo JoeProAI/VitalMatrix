@@ -35,6 +35,18 @@ service cloud.firestore {
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
     
+    // User activity logs - allow authenticated users
+    match /user_activity_logs/{logId} {
+      allow read, write: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
+    // User dashboard - allow authenticated users
+    match /user_dashboard/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+    
     // Healthcare facilities data (used by Community Pulse)
     match /facilities/{facilityId} {
       allow read: if true; // Public read for community features

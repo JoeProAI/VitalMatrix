@@ -228,6 +228,39 @@ export const getFacilityReviews = async (facilityId: string, maxResults = 10): P
 };
 
 /**
+ * Check if a wait time has expired and should be reset to 0
+ * Wait times expire after twice the posted wait time unless updated
+ */
+export const checkWaitTimeExpiry = (lastUpdate: any, currentWaitTime: number): boolean => {
+  if (!lastUpdate || !currentWaitTime) return false;
+  
+  // Convert Firestore timestamp to Date
+  const lastUpdateTime = lastUpdate.toDate ? lastUpdate.toDate() : new Date(lastUpdate);
+  const now = new Date();
+  const timeDiffMinutes = (now.getTime() - lastUpdateTime.getTime()) / (1000 * 60);
+  
+  // Reset if time elapsed is more than twice the posted wait time
+  return timeDiffMinutes > (currentWaitTime * 2);
+};
+
+/**
+ * Reset expired wait times to 0 for a facility
+ */
+export const resetExpiredWaitTime = async (facilityId: string): Promise<void> => {
+  try {
+    const facilityRef = doc(db, 'facilities', facilityId);
+    await updateDoc(facilityRef, {
+      currentWaitTime: 0,
+      lastWaitTimeUpdate: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error resetting expired wait time:', error);
+    throw error;
+  }
+};
+
+/**
  * Update a facility's wait time
  */
 export const updateWaitTime = async (
