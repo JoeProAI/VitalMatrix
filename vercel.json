@@ -1,8 +1,11 @@
 {
+  "version": 2,
+  "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
     "api/ai-analyze-food.js": {
+      "runtime": "nodejs18.x",
       "maxDuration": 30
     }
   },
