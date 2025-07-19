@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   getUserProfile, 
@@ -18,7 +19,11 @@ import {
   Utensils,
   Award,
   Target,
-  Clock
+  Clock,
+  Home,
+  Scan,
+  Users,
+  ArrowLeft
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -31,6 +36,7 @@ interface DashboardStats {
 
 const UserDashboard: React.FC = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [insights, setInsights] = useState<any>(null);
@@ -175,15 +181,38 @@ const UserDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#121827] text-white">
-      {/* Header */}
-      <div className="bg-[#1e293b] border-b border-gray-700">
+      {/* Navigation Header */}
+      <div className="bg-[#1e293b] border-b border-gray-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Heart className="h-8 w-8 text-[#3b82f6] mr-3" />
-              <h1 className="text-xl font-bold">VitalMatrix Dashboard</h1>
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors duration-200 hover:shadow-lg hover:shadow-blue-500/20 p-2 rounded-lg"
+              >
+                <Home className="h-5 w-5" />
+                <span className="hidden sm:block">Home</span>
+              </button>
+              <div className="flex items-center">
+                <Heart className="h-8 w-8 text-[#3b82f6] mr-3" />
+                <h1 className="text-xl font-bold">VitalMatrix Dashboard</h1>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/nutrilens')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 p-2 rounded-lg"
+              >
+                <Scan className="h-5 w-5" />
+                <span className="hidden sm:block">NutriLens</span>
+              </button>
+              <button
+                onClick={() => navigate('/community')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/20 p-2 rounded-lg"
+              >
+                <Users className="h-5 w-5" />
+                <span className="hidden sm:block">Community</span>
+              </button>
               <div className="text-right">
                 <p className="text-sm font-medium">{profile.displayName}</p>
                 <p className="text-xs text-gray-400">{profile.email}</p>
@@ -406,9 +435,9 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, suffix, icon: Icon, color, bgColor }) => (
-  <div className="bg-[#1e293b] rounded-lg p-6">
+  <div className="bg-[#1e293b] rounded-lg p-6 hover:bg-[#233044] transition-all duration-300 cursor-pointer hover:shadow-lg hover:shadow-blue-500/10 hover:scale-105 border border-transparent hover:border-blue-500/20">
     <div className="flex items-center">
-      <div className={`${bgColor} rounded-lg p-3`}>
+      <div className={`${bgColor} rounded-lg p-3 transition-all duration-300 hover:shadow-lg hover:shadow-current/20`}>
         <Icon className={`h-6 w-6 ${color}`} />
       </div>
     </div>
@@ -432,10 +461,10 @@ interface QuickActionCardProps {
 const QuickActionCard: React.FC<QuickActionCardProps> = ({ title, description, icon: Icon, href }) => (
   <a
     href={href}
-    className="block bg-[#121827] rounded-lg p-4 hover:bg-[#0f172a] transition-colors border border-gray-700 hover:border-[#3b82f6]"
+    className="block bg-[#121827] rounded-lg p-4 hover:bg-[#0f172a] transition-all duration-300 border border-gray-700 hover:border-[#3b82f6] hover:shadow-lg hover:shadow-blue-500/10 hover:scale-105 cursor-pointer"
   >
     <div className="flex items-center mb-2">
-      <Icon className="h-5 w-5 text-[#3b82f6] mr-2" />
+      <Icon className="h-5 w-5 text-[#3b82f6] mr-2 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20" />
       <h4 className="font-medium text-white">{title}</h4>
     </div>
     <p className="text-sm text-gray-400">{description}</p>

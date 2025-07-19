@@ -85,21 +85,32 @@ module.exports = async (req, res) => {
             content: [
               { 
                 type: "text", 
-                text: `Analyze this food image and provide detailed nutritional information. Return ONLY a JSON object with this exact structure:
+text: `Analyze this food image and provide comprehensive nutritional and allergen information. Return ONLY a JSON object with this exact structure:
 
 {
   "foods": [
     {
       "name": "Specific food name",
       "portion": "serving description",
-      "allergens": ["allergen1", "allergen2"]
+      "allergens": ["allergen1", "allergen2"],
+      "ingredients": ["likely ingredients based on appearance"],
+      "riskLevel": "low|medium|high for allergen exposure"
     }
   ],
   "totalNutrition": {
     "calories": "Total calories as number",
     "protein": "Total protein in grams",
     "carbs": "Total carbs in grams", 
-    "fat": "Total fat in grams"
+    "fat": "Total fat in grams",
+    "fiber": "Total fiber in grams",
+    "sugar": "Total sugar in grams",
+    "sodium": "Total sodium in mg"
+  },
+  "allergenAnalysis": {
+    "detected": ["List ALL potential allergens from the 14 major allergens"],
+    "crossContamination": ["Possible cross-contamination risks"],
+    "severity": "low|medium|high overall allergen risk",
+    "warnings": ["Specific allergen warnings"]
   },
   "healthScore": "1-10 rating",
   "benefits": ["Health benefits"],
@@ -107,7 +118,23 @@ module.exports = async (req, res) => {
   "dietaryTags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "keto-friendly", "high-protein", "low-carb", etc.]
 }
 
-Provide accurate nutritional estimates based on visible portions and typical serving sizes.` 
+IMPORTANT: For allergen detection, consider ALL 14 major allergens:
+1. Peanuts - Look for peanuts, peanut butter, or peanut-containing products
+2. Tree nuts - Almonds, walnuts, cashews, pistachios, hazelnuts, etc.
+3. Milk/Dairy - Cheese, butter, cream, milk products
+4. Eggs - Visible eggs or egg-containing products like mayonnaise
+5. Fish - Any fish or fish-derived ingredients
+6. Shellfish - Shrimp, crab, lobster, mussels, etc.
+7. Soy - Tofu, soy sauce, edamame, soy-based products
+8. Wheat/Gluten - Bread, pasta, flour-based products
+9. Sesame - Sesame seeds, tahini, sesame oil
+10. Sulfites - Dried fruits, wine, processed foods
+11. Mustard - Mustard seeds, prepared mustard
+12. Celery - Celery stalks, celery seed
+13. Lupin - Lupin flour, lupin beans
+14. Mollusks - Snails, squid, octopus
+
+Analyze ingredients carefully and provide detailed allergen warnings. Consider hidden allergens in processed foods, sauces, and seasonings.` 
               },
               { 
                 type: "image_url", 
