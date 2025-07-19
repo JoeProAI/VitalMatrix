@@ -1,5 +1,18 @@
 const axios = require('axios');
 
+// Add more detailed error logging
+const logError = (message, error) => {
+  console.error(`[ERROR] ${message}:`, error);
+  if (error.response) {
+    console.error('Response status:', error.response.status);
+    console.error('Response data:', error.response.data);
+  }
+  if (error.request) {
+    console.error('Request error:', error.request);
+  }
+  console.error('Error message:', error.message);
+};
+
 module.exports = async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,6 +30,12 @@ module.exports = async (req, res) => {
 
   try {
     console.log('Received image analysis request');
+    console.log('Environment check:', {
+      hasGrokKey: !!process.env.GROK_API_KEY,
+      grokEndpoint: process.env.GROK_API_ENDPOINT,
+      grokModel: process.env.GROK_MODEL
+    });
+    
     const { image } = req.body;
 
     if (!image) {
@@ -249,19 +268,30 @@ Provide accurate nutritional estimates based on visible portions and typical ser
     return res.status(200).json(response);
 
   } catch (error) {
-    console.error('Error in AI analysis:', error);
+    logError('AI analysis failed', error);
+    
+    // Check if it's an environment variable issue
+    if (!process.env.GROK_API_KEY) {
+      return res.status(500).json({ error: 'Grok API key not found in environment variables' });
+    }
     
     if (axios.isAxiosError && axios.isAxiosError(error)) {
       const axiosError = error;
       if (axiosError.response) {
-        console.error('API error response:', axiosError.response.status, axiosError.response.data);
-        return res.status(500).json({ error: `Grok API error (${axiosError.response.status}): ${JSON.stringify(axiosError.response.data)}` });
+        logError('Grok API response error', axiosError);
+        return res.status(500).json({ 
+          error: `Grok API error (${axiosError.response.status}): ${JSON.stringify(axiosError.response.data)}`,
+          details: axiosError.response.data
+        });
       } else if (axiosError.request) {
-        console.error('API request error - no response received');
+        logError('Grok API request error', axiosError);
         return res.status(500).json({ error: 'No response received from Grok API. Please check your network connection and API endpoint.' });
       }
     }
     
-    return res.status(500).json({ error: `API error: ${error.message || String(error)}` });
+    return res.status(500).json({ 
+      error: `API error: ${error.message || String(error)}`,
+      stack: error.stack
+    });
   }
 };
