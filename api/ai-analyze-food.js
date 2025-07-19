@@ -121,10 +121,31 @@ Provide accurate nutritional estimates based on visible portions and typical ser
     };
 
     try {
-      // Try to parse JSON response
-      const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsedData = JSON.parse(jsonMatch[0]);
+      // Try to parse JSON response - handle markdown code blocks
+      let jsonContent = aiContent;
+      
+      // Remove markdown code block formatting if present
+      if (aiContent.includes('```json')) {
+        const jsonStart = aiContent.indexOf('```json') + 7;
+        const jsonEnd = aiContent.lastIndexOf('```');
+        if (jsonEnd > jsonStart) {
+          jsonContent = aiContent.substring(jsonStart, jsonEnd).trim();
+        }
+      }
+      
+      // Additional cleanup: remove any remaining markdown formatting
+      jsonContent = jsonContent.replace(/^```json\s*/g, '').replace(/\s*```$/g, '').trim();
+      
+      // Fallback: extract JSON object if no markdown blocks found
+      if (!jsonContent || jsonContent === aiContent) {
+        const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          jsonContent = jsonMatch[0];
+        }
+      }
+      
+      console.log('🔧 Extracted JSON content:', jsonContent.substring(0, 200) + '...');
+      const parsedData = JSON.parse(jsonContent);
         if (parsedData.foods && Array.isArray(parsedData.foods)) {
           foodItems = parsedData.foods.map((food, index) => ({
             name: food.name || `Food item ${index + 1}`,
