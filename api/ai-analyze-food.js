@@ -44,13 +44,16 @@ module.exports = async (req, res) => {
 
     // Check image size (base64 encoded images are ~33% larger than original)
     const imageSizeBytes = (image.length * 3) / 4;
-    const maxSizeMB = 5;
+    const maxSizeMB = 2; // Reduced from 5MB to 2MB for better performance
     if (imageSizeBytes > maxSizeMB * 1024 * 1024) {
+      console.log(`Image too large: ${(imageSizeBytes / 1024 / 1024).toFixed(2)}MB (max: ${maxSizeMB}MB)`);
       return res.status(413).json({ 
-        error: `Image too large. Maximum size is ${maxSizeMB}MB. Please compress the image and try again.`,
+        error: `Image too large (${(imageSizeBytes / 1024 / 1024).toFixed(2)}MB). Maximum size is ${maxSizeMB}MB. Please compress the image and try again.`,
         success: false
       });
     }
+    
+    console.log(`Processing image: ${(imageSizeBytes / 1024 / 1024).toFixed(2)}MB`);
 
     const GROK_API_KEY = process.env.GROK_API_KEY;
     const GROK_API_ENDPOINT = process.env.GROK_API_ENDPOINT || 'https://api.x.ai/v1/chat/completions';
@@ -62,13 +65,32 @@ module.exports = async (req, res) => {
 
     console.log('Calling Grok AI for image analysis...');
 
-    // Convert data URL to proper base64 format for Grok AI
+    // Validate and convert data URL to proper base64 format for Grok AI
     let imageData = image;
-    if (image.startsWith('data:image/')) {
+    if (!image.startsWith('data:image/')) {
+      return res.status(400).json({ 
+        error: 'Invalid image format. Expected base64 data URL starting with "data:image/"',
+        success: false
+      });
+    }
+    
+    try {
       // Extract base64 data from data URL
       const base64Data = image.split(',')[1];
       const mimeType = image.split(';')[0].split(':')[1];
+      
+      if (!base64Data || !mimeType) {
+        throw new Error('Invalid data URL format');
+      }
+      
       imageData = `data:${mimeType};base64,${base64Data}`;
+      console.log(`Image format: ${mimeType}, Base64 length: ${base64Data.length}`);
+    } catch (formatError) {
+      console.error('Image format error:', formatError);
+      return res.status(400).json({ 
+        error: 'Invalid image data format. Please ensure the image is properly encoded.',
+        success: false
+      });
     }
 
     const grokResponse = await fetch(GROK_API_ENDPOINT, {
@@ -152,10 +174,37 @@ Analyze ingredients carefully and provide detailed allergen warnings. Consider h
     });
 
     if (!grokResponse.ok) {
+      const errorText = await grokResponse.text();
+      console.error('Grok API error response:', errorText);
+      
+      // Handle specific error codes
+      if (grokResponse.status === 413) {
+        return res.status(413).json({
+          error: 'Image too large for AI analysis. Please use a smaller image.',
+          success: false
+        });
+      }
+      
+      if (grokResponse.status === 400) {
+        return res.status(400).json({
+          error: 'Invalid image format for AI analysis. Please try a different image.',
+          success: false
+        });
+      }
+      
       throw new Error(`Grok API error: ${grokResponse.status} ${grokResponse.statusText}`);
     }
 
-    const grokData = await grokResponse.json();
+    let grokData;
+    try {
+      grokData = await grokResponse.json();
+    } catch (jsonError) {
+      console.error('Failed to parse Grok API response as JSON:', jsonError);
+      return res.status(500).json({
+        error: 'Invalid response from AI service. Please try again.',
+        success: false
+      });
+    }
     const aiContent = grokData?.choices?.[0]?.message?.content || '';
     console.log('Grok AI Response:', aiContent.substring(0, 200) + '...');
 
