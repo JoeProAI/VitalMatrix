@@ -420,7 +420,7 @@ const analyzeImageWithAI = async (imageData: string): Promise<NutritionScanResul
     // Call our API endpoint (Vercel function in production, local server in development)
     const isProduction = window.location.hostname !== 'localhost';
     const apiUrl = isProduction 
-      ? '/api/ai-analyze-food' // Use relative URL for Vercel functions
+      ? '/api/test-function' // Use test function to debug
       : 'http://localhost:3001/api/ai-analyze-food'; // Use local server in development
     
     const response = await fetch(apiUrl, {
