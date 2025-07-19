@@ -39,7 +39,7 @@ const NutriLens: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'scan' | 'history' | 'insights' | 'goals'>('scan');
-  const [scanMode, setScanMode] = useState<'barcode' | 'camera' | 'voice'>('barcode');
+  const [scanMode, setScanMode] = useState<'barcode' | 'camera'>('barcode');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<NutritionScanResult | null>(null);
   const [insights, setInsights] = useState<HealthInsight[]>([]);
@@ -86,6 +86,8 @@ const NutriLens: React.FC = () => {
       stopAutoScanning();
     };
   }, []);
+
+
 
   const loadUserData = async () => {
     if (!currentUser) return;
@@ -206,7 +208,21 @@ const NutriLens: React.FC = () => {
         canvas.height = video.videoHeight;
         context.drawImage(video, 0, 0);
         
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        // Compress camera capture more aggressively
+      let imageData = canvas.toDataURL('image/jpeg', 0.4);
+      
+      // If still too large, compress further
+      if (imageData.length > 1 * 1024 * 1024) {
+        // Reduce canvas size and compress more
+        const originalWidth = canvas.width;
+        const originalHeight = canvas.height;
+        canvas.width = originalWidth * 0.7;
+        canvas.height = originalHeight * 0.7;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        imageData = canvas.toDataURL('image/jpeg', 0.2);
+      }
+      
+      console.log(`📸 Camera image compressed: ${(imageData.length / 1024 / 1024).toFixed(2)}MB`);
         const result = await analyzeFood(imageData, currentUser.uid);
         
         if (result) {
@@ -439,18 +455,21 @@ const NutriLens: React.FC = () => {
     console.log('📹 Camera stopped');
   };
 
-  // Helper function to compress image aggressively
-  const compressImage = (file: File, maxWidth: number = 600, quality: number = 0.6): Promise<string> => {
+
+
+  // Helper function to compress image aggressively for API limits
+  const compressImage = (file: File, maxWidth: number = 400, quality: number = 0.4): Promise<string> => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
       
       img.onload = () => {
-        // Calculate new dimensions with more aggressive compression
+        // Calculate new dimensions with aggressive compression for API limits
         let { width, height } = img;
         const maxDimension = Math.max(width, height);
         
+        // More aggressive size reduction
         if (maxDimension > maxWidth) {
           const ratio = maxWidth / maxDimension;
           width = width * ratio;
@@ -460,23 +479,31 @@ const NutriLens: React.FC = () => {
         canvas.width = width;
         canvas.height = height;
         
-        // Draw and compress with better quality settings
+        // Draw and compress with aggressive settings
         ctx?.drawImage(img, 0, 0, width, height);
         
-        // Try multiple compression levels if needed
+        // Start with very aggressive compression
         let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
         
-        // If still too large (>2MB), compress further
-        if (compressedDataUrl.length > 2 * 1024 * 1024) {
-          compressedDataUrl = canvas.toDataURL('image/jpeg', 0.4);
+        // If still too large (>1MB), compress even more aggressively
+        if (compressedDataUrl.length > 1 * 1024 * 1024) {
+          compressedDataUrl = canvas.toDataURL('image/jpeg', 0.2);
         }
         
-        // Final check - if still too large, reduce dimensions further
-        if (compressedDataUrl.length > 2 * 1024 * 1024) {
-          canvas.width = width * 0.7;
-          canvas.height = height * 0.7;
+        // Final check - if still too large, reduce dimensions and quality further
+        if (compressedDataUrl.length > 1 * 1024 * 1024) {
+          canvas.width = width * 0.6;
+          canvas.height = height * 0.6;
           ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
-          compressedDataUrl = canvas.toDataURL('image/jpeg', 0.3);
+          compressedDataUrl = canvas.toDataURL('image/jpeg', 0.15);
+        }
+        
+        // Ultimate fallback - ensure under 500KB
+        if (compressedDataUrl.length > 500 * 1024) {
+          canvas.width = width * 0.4;
+          canvas.height = height * 0.4;
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          compressedDataUrl = canvas.toDataURL('image/jpeg', 0.1);
         }
         
         console.log(`📸 Image compressed: ${(compressedDataUrl.length / 1024 / 1024).toFixed(2)}MB`);
@@ -604,7 +631,7 @@ const NutriLens: React.FC = () => {
             {/* Scan Mode Selection */}
             <div className="bg-[#1e293b] rounded-lg p-6">
               <h3 className="text-lg font-semibold mb-4">Choose Scan Method</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={() => setScanMode('barcode')}
                   className={`p-4 rounded-lg border-2 transition-all ${
@@ -629,19 +656,6 @@ const NutriLens: React.FC = () => {
                   <Camera className="h-8 w-8 mx-auto mb-2 text-[#3b82f6]" />
                   <h4 className="font-medium">AI Vision</h4>
                   <p className="text-sm text-gray-400">Analyze any food</p>
-                </button>
-                
-                <button
-                  onClick={() => setScanMode('voice')}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    scanMode === 'voice'
-                      ? 'border-[#3b82f6] bg-[#3b82f6]/10'
-                      : 'border-gray-600 hover:border-gray-500'
-                  }`}
-                >
-                  <Mic className="h-8 w-8 mx-auto mb-2 text-[#3b82f6]" />
-                  <h4 className="font-medium">Voice Input</h4>
-                  <p className="text-sm text-gray-400">Speak what you ate</p>
                 </button>
               </div>
             </div>
