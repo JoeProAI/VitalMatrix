@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   scanBarcode,
@@ -28,11 +29,15 @@ import {
   BarChart3,
   Calendar,
   Clock,
-  Info
+  Info,
+  Home,
+  Users,
+  User
 } from 'lucide-react';
 
 const NutriLens: React.FC = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'scan' | 'history' | 'insights' | 'goals'>('scan');
   const [scanMode, setScanMode] = useState<'barcode' | 'camera' | 'voice'>('barcode');
   const [isScanning, setIsScanning] = useState(false);
@@ -524,15 +529,38 @@ const NutriLens: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#121827] text-white">
-      {/* Header */}
-      <div className="bg-[#1e293b] border-b border-gray-700">
+      {/* Navigation Header */}
+      <div className="bg-[#1e293b] border-b border-gray-700 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <Utensils className="h-8 w-8 text-[#3b82f6] mr-3" />
-              <h1 className="text-xl font-bold">NutriLens AI Scanner</h1>
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => navigate('/')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/20 p-2 rounded-lg"
+              >
+                <Home className="h-5 w-5" />
+                <span className="hidden sm:block">Home</span>
+              </button>
+              <div className="flex items-center">
+                <Utensils className="h-8 w-8 text-[#3b82f6] mr-3" />
+                <h1 className="text-xl font-bold">NutriLens AI Scanner</h1>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 p-2 rounded-lg"
+              >
+                <User className="h-5 w-5" />
+                <span className="hidden sm:block">Dashboard</span>
+              </button>
+              <button
+                onClick={() => navigate('/community')}
+                className="flex items-center space-x-2 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/20 p-2 rounded-lg"
+              >
+                <Users className="h-5 w-5" />
+                <span className="hidden sm:block">Community</span>
+              </button>
               <div className="text-right">
                 <p className="text-sm font-medium">{currentUser?.displayName || 'User'}</p>
                 <p className="text-xs text-gray-400">Smart Nutrition Analysis</p>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
-import { Map, Clock3, Star, AlertCircle, User, Activity, UserPlus, FileEdit } from 'lucide-react';
+import { Map, Clock3, Star, AlertCircle, User, Activity, UserPlus, FileEdit, Home, Scan, Users } from 'lucide-react';
 import { 
   getNearbyFacilities, 
   getFacilityById, 
@@ -49,6 +50,7 @@ const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
 
 const CommunityPulse: React.FC = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const [facilities, setFacilities] = useState<HealthcareFacility[]>([]);
   const [selectedFacility, setSelectedFacility] = useState<HealthcareFacility | null>(null);
   const [reviews, setReviews] = useState<FacilityReview[]>([]);
