@@ -45,8 +45,13 @@ const crowdingLevelColors: CrowdingLevelColors = {
   high: '#ef4444' // red
 };
 
-// Google Maps API key - ideally, this should be in an environment variable
-const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
+// Google Maps API key - with fallback and debugging
+const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyDf9E5b-D5IDLJY0ZPU08zBlzP-7xEVkLk";
+console.log('🗺️ Google Maps API Key loaded:', googleMapsApiKey ? 'Yes' : 'No', googleMapsApiKey?.substring(0, 10) + '...');
+
+if (!googleMapsApiKey) {
+  console.error('❌ Google Maps API key is missing! Check environment variables.');
+}
 
 const CommunityPulse: React.FC = () => {
   const { currentUser } = useAuth();
