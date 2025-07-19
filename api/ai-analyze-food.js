@@ -41,16 +41,24 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: 'Grok API key not configured' });
     }
 
-    console.log('Calling Grok API for image analysis...');
+    console.log('Calling Grok AI for image analysis...');
+
+    // Convert data URL to proper base64 format for Grok AI
+    let imageData = image;
+    if (image.startsWith('data:image/')) {
+      // Extract base64 data from data URL
+      const base64Data = image.split(',')[1];
+      const mimeType = image.split(';')[0].split(':')[1];
+      imageData = `data:${mimeType};base64,${base64Data}`;
+    }
 
     const grokResponse = await axios({
       method: 'post',
       url: GROK_API_ENDPOINT,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROK_API_KEY}`,
+        'Authorization': `Bearer ${GROK_API_KEY}`
       },
-      timeout: 30000,
       data: {
         model: GROK_MODEL,
         messages: [
@@ -59,24 +67,18 @@ module.exports = async (req, res) => {
             content: [
               { 
                 type: "text", 
-                text: `Analyze this food image and provide a detailed nutritional analysis. Return your response as a JSON object with the following structure:
+                text: `Analyze this food image and provide detailed nutritional information. Return ONLY a JSON object with this exact structure:
 
 {
   "foods": [
     {
-      "name": "Food item name",
-      "portion": "Estimated portion size",
-      "calories": "Estimated calories per serving",
-      "macros": {
-        "protein": "X grams",
-        "carbs": "X grams",
-        "fat": "X grams",
-        "fiber": "X grams"
-      }
+      "name": "Specific food name",
+      "portion": "serving description",
+      "allergens": ["allergen1", "allergen2"]
     }
   ],
   "totalNutrition": {
-    "calories": "Total calories",
+    "calories": "Total calories as number",
     "protein": "Total protein in grams",
     "carbs": "Total carbs in grams", 
     "fat": "Total fat in grams"
@@ -92,7 +94,7 @@ Provide accurate nutritional estimates based on visible portions and typical ser
               { 
                 type: "image_url", 
                 image_url: { 
-                  url: image,
+                  url: imageData,
                   detail: "high"
                 } 
               }
@@ -146,29 +148,29 @@ Provide accurate nutritional estimates based on visible portions and typical ser
       
       console.log('🔧 Extracted JSON content:', jsonContent.substring(0, 200) + '...');
       const parsedData = JSON.parse(jsonContent);
-        if (parsedData.foods && Array.isArray(parsedData.foods)) {
-          foodItems = parsedData.foods.map((food, index) => ({
-            name: food.name || `Food item ${index + 1}`,
-            confidence: 0.9 - (index * 0.05),
-            portion: food.portion || 'regular'
-          }));
-          
-          if (parsedData.totalNutrition) {
-            nutritionalData.nutritionalEstimate = {
-              calories: parseInt(parsedData.totalNutrition.calories) || 0,
-              protein: parseInt(parsedData.totalNutrition.protein) || 0,
-              carbs: parseInt(parsedData.totalNutrition.carbs) || 0,
-              fat: parseInt(parsedData.totalNutrition.fat) || 0,
-            };
-          }
-          
-          if (parsedData.benefits) {
-            nutritionalData.healthInsights = parsedData.benefits;
-          }
-          
-          if (parsedData.concerns) {
-            nutritionalData.warnings = parsedData.concerns;
-          }
+      
+      if (parsedData.foods && Array.isArray(parsedData.foods)) {
+        foodItems = parsedData.foods.map((food, index) => ({
+          name: food.name || `Food item ${index + 1}`,
+          confidence: 0.9 - (index * 0.05),
+          portion: food.portion || 'regular'
+        }));
+        
+        if (parsedData.totalNutrition) {
+          nutritionalData.nutritionalEstimate = {
+            calories: parseInt(parsedData.totalNutrition.calories) || 0,
+            protein: parseInt(parsedData.totalNutrition.protein) || 0,
+            carbs: parseInt(parsedData.totalNutrition.carbs) || 0,
+            fat: parseInt(parsedData.totalNutrition.fat) || 0,
+          };
+        }
+        
+        if (parsedData.benefits) {
+          nutritionalData.healthInsights = parsedData.benefits;
+        }
+        
+        if (parsedData.concerns) {
+          nutritionalData.warnings = parsedData.concerns;
         }
       }
     } catch (parseError) {
@@ -180,57 +182,67 @@ Provide accurate nutritional estimates based on visible portions and typical ser
       const foodMatches = [];
       
       for (const line of lines) {
-        const lowerLine = line.toLowerCase();
-        
-        if (lowerLine.includes('food item') || lowerLine.includes('identified') || 
-            lowerLine.match(/^\d+\.\s*identified/) || lowerLine.match(/^food items:/i)) {
+        if (line.toLowerCase().includes('food') || line.toLowerCase().includes('item')) {
           inFoodSection = true;
-          continue;
         }
         
-        if (inFoodSection && line) {
-          if (lowerLine.includes('nutrition') || lowerLine.includes('health') || 
-              lowerLine.includes('dietary') || lowerLine.match(/^\d+\.\s*(nutrition|health)/)) {
-            inFoodSection = false;
-            continue;
-          }
+        if (inFoodSection && line.trim()) {
+          // Try to extract food names from various formats
+          const foodMatch = line.match(/(?:name|food|item):\s*"?([^"]+)"?/i) || 
+                           line.match(/^\s*-\s*([^,\n]+)/i) ||
+                           line.match(/^\s*\d+\.\s*([^,\n]+)/i);
           
-          if (line.match(/^[-•*]\s/) || line.match(/^\d+\.\s/) || 
-              line.includes(':') || (line.length > 3 && !line.match(/^[#>]/))) {
-            foodMatches.push(line);
+          if (foodMatch) {
+            const foodName = foodMatch[1].trim();
+            if (foodName && !foodName.toLowerCase().includes('json') && foodName.length > 2) {
+              foodMatches.push(foodName);
+            }
           }
         }
       }
       
-      foodMatches.forEach((match, index) => {
-        let name = match;
-        name = name.replace(/^[-•*\d\.\s]+/, '').trim();
-        name = name.split(/[:–—]/)[0].trim();
-        
-        if (name && name.length > 2 && !name.toLowerCase().includes('could not identify')) {
-          foodItems.push({
-            name,
-            confidence: 0.9 - (index * 0.05),
-            portion: 'regular',
-          });
-        }
-      });
+      if (foodMatches.length > 0) {
+        foodItems = foodMatches.slice(0, 3).map((name, index) => ({
+          name: name,
+          confidence: 0.8 - (index * 0.1),
+          portion: 'regular'
+        }));
+      } else {
+        // Last resort: generic food item
+        foodItems = [{
+          name: 'Food item',
+          confidence: 0.7,
+          portion: 'regular'
+        }];
+      }
+      
+      // Extract basic nutrition if available
+      const calorieMatch = aiContent.match(/calories?:\s*(\d+)/i);
+      if (calorieMatch) {
+        nutritionalData.nutritionalEstimate.calories = parseInt(calorieMatch[1]);
+      }
     }
 
-    if (foodItems.length === 0) {
-      foodItems.push({
-        name: "Unidentified food item",
-        confidence: 0.5,
-        portion: 'regular',
-      });
-    }
+    // Extract allergens from all food items
+    const allAllergens = new Set();
+    
+    // Try to extract allergens from the AI response
+    const allergenKeywords = ['wheat', 'gluten', 'dairy', 'milk', 'eggs', 'nuts', 'peanuts', 'soy', 'fish', 'shellfish', 'sesame'];
+    const responseText = aiContent.toLowerCase();
+    
+    allergenKeywords.forEach(allergen => {
+      if (responseText.includes(allergen)) {
+        allAllergens.add(allergen);
+      }
+    });
 
+    // Create response
     const response = {
       success: true,
-      foodItems,
-      description: aiContent.substring(0, 200) + (aiContent.length > 200 ? '...' : ''),
-      nutritionalData,
-      detailedAnalysis: aiContent
+      foodItems: foodItems,
+      allergens: Array.from(allAllergens),
+      nutritionalData: nutritionalData,
+      timestamp: new Date().toISOString()
     };
 
     console.log('Analysis complete, returning results');
@@ -252,4 +264,4 @@ Provide accurate nutritional estimates based on visible portions and typical ser
     
     return res.status(500).json({ error: `API error: ${error.message || String(error)}` });
   }
-}
+};
