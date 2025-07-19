@@ -206,8 +206,8 @@ const CommunityPulse: React.FC = () => {
           lng: newCenter.lng()
         };
         setMapPosition(newPos);
-        // Removed automatic facility reloading to prevent glitchy behavior
-        // loadNearbyFacilities(newPos, searchRadius);
+        // Load facilities for new map position
+        loadRealFacilities(newPos, searchRadius * 1000);
       }
     }
   };
@@ -436,50 +436,16 @@ const CommunityPulse: React.FC = () => {
             <span>Use My Location</span>
           </button>
         </div>
-        <div className="radius-controls" style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
+        <div className="map-info" style={{
           backgroundColor: '#1e293b',
           padding: '1rem',
           borderRadius: '8px',
-          color: '#e2e8f0'
+          color: '#e2e8f0',
+          textAlign: 'center'
         }}>
-          <label htmlFor="radius-slider" style={{ fontSize: '0.9rem', fontWeight: '500' }}>
-            Search radius: {searchRadius} km
-          </label>
-          <input
-            id="radius-slider"
-            type="range"
-            min="1"
-            max="25"
-            value={searchRadius}
-            onChange={(e) => {
-              const newRadius = parseInt(e.target.value);
-              setSearchRadius(newRadius);
-              if (mapPosition.lat !== 40.7128 || mapPosition.lng !== -74.0060) {
-                loadRealFacilities(mapPosition, newRadius * 1000);
-              }
-            }}
-            style={{
-              width: '100%',
-              height: '4px',
-              borderRadius: '2px',
-              background: '#475569',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          />
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            fontSize: '0.75rem',
-            color: '#94a3b8'
-          }}>
-            <span>1km</span>
-            <span>Click map to search new areas</span>
-            <span>25km</span>
-          </div>
+          <p style={{ fontSize: '0.9rem', margin: 0 }}>
+            Move the map to find healthcare facilities in new areas
+          </p>
         </div>
         <div className="facilities-counter" style={{ 
           backgroundColor: '#1e293b', 
