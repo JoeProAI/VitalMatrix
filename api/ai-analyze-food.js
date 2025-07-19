@@ -1,4 +1,4 @@
-const axios = require('axios');
+// Use built-in fetch instead of axios for better Vercel compatibility
 
 // Add more detailed error logging
 const logError = (message, error) => {
@@ -71,14 +71,13 @@ module.exports = async (req, res) => {
       imageData = `data:${mimeType};base64,${base64Data}`;
     }
 
-    const grokResponse = await axios({
-      method: 'post',
-      url: GROK_API_ENDPOINT,
+    const grokResponse = await fetch(GROK_API_ENDPOINT, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${GROK_API_KEY}`
       },
-      data: {
+      body: JSON.stringify({
         model: GROK_MODEL,
         messages: [
           {
@@ -122,10 +121,15 @@ Provide accurate nutritional estimates based on visible portions and typical ser
         ],
         temperature: 0.1,
         max_tokens: 1000
-      }
+      })
     });
 
-    const aiContent = grokResponse.data?.choices?.[0]?.message?.content || '';
+    if (!grokResponse.ok) {
+      throw new Error(`Grok API error: ${grokResponse.status} ${grokResponse.statusText}`);
+    }
+
+    const grokData = await grokResponse.json();
+    const aiContent = grokData?.choices?.[0]?.message?.content || '';
     console.log('Grok AI Response:', aiContent.substring(0, 200) + '...');
 
     // Parse the response
@@ -275,18 +279,10 @@ Provide accurate nutritional estimates based on visible portions and typical ser
       return res.status(500).json({ error: 'Grok API key not found in environment variables' });
     }
     
-    if (axios.isAxiosError && axios.isAxiosError(error)) {
-      const axiosError = error;
-      if (axiosError.response) {
-        logError('Grok API response error', axiosError);
-        return res.status(500).json({ 
-          error: `Grok API error (${axiosError.response.status}): ${JSON.stringify(axiosError.response.data)}`,
-          details: axiosError.response.data
-        });
-      } else if (axiosError.request) {
-        logError('Grok API request error', axiosError);
-        return res.status(500).json({ error: 'No response received from Grok API. Please check your network connection and API endpoint.' });
-      }
+    // Handle fetch errors
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      logError('Grok API network error', error);
+      return res.status(500).json({ error: 'Network error connecting to Grok API. Please check your connection.' });
     }
     
     return res.status(500).json({ 
