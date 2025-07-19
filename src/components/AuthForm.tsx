@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, Eye, EyeOff, User, ArrowRight, AlertCircle } from 'lucide-react';
@@ -18,6 +18,25 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
 
   const { signup, login } = useAuth();
   const navigate = useNavigate();
+
+  // Force dark mode for auth pages
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    const originalClass = htmlElement.className;
+    
+    // Add dark class if not already present
+    if (!htmlElement.classList.contains('dark')) {
+      htmlElement.classList.add('dark');
+    }
+    
+    // Cleanup: restore original classes when component unmounts
+    return () => {
+      // Only remove dark class if it wasn't there originally
+      if (!originalClass.includes('dark')) {
+        htmlElement.classList.remove('dark');
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
