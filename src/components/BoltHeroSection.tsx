@@ -53,10 +53,10 @@ const BoltHeroSection: React.FC = () => {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-2xl mx-auto text-center">
           {[
-            { icon: UsersIcon, label: 'Community Powered', value: '50K+' },
-            { icon: ZapIcon, label: 'Real-Time Data', value: '24/7' },
-            { icon: BrainIcon, label: 'AI Insights', value: '99.9%' },
-            { icon: ShieldIcon, label: 'Privacy First', value: '100%' },
+            { icon: UsersIcon, label: 'Active Communities', value: '500+' },
+            { icon: ZapIcon, label: 'Real-Time Updates', value: '24/7' },
+            { icon: BrainIcon, label: 'AI Accuracy', value: '95.2%' },
+            { icon: ShieldIcon, label: 'Privacy Protected', value: '100%' },
           ].map((stat, index) => (
             <div 
               key={index} 

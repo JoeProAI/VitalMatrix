@@ -153,10 +153,10 @@ const BoltCommunitySection: React.FC = () => {
         {/* Community Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center mt-12">
           {[
-            { label: 'Active Users', value: '50K+', icon: UsersIcon },
-            { label: 'Daily Reports', value: '3,720', icon: MessageSquareIcon },
-            { label: 'Facilities Covered', value: '1,245', icon: AlertCircleIcon },
-            { label: 'User Satisfaction', value: '96%', icon: ThumbsUpIcon },
+            { label: 'Active Users', value: '500+', icon: UsersIcon },
+            { label: 'Daily Reports', value: '127', icon: MessageSquareIcon },
+            { label: 'Facilities Covered', value: '85', icon: AlertCircleIcon },
+            { label: 'User Satisfaction', value: '94%', icon: ThumbsUpIcon },
           ].map((stat, i) => (
             <div key={i} className="bg-dark-surface/50 p-6 rounded-xl border border-white/5">
               <div className="inline-block p-3 rounded-full bg-gradient-to-br from-electric-blue/20 to-neon-purple/20 mb-3">
