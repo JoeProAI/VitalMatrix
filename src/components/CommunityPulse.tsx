@@ -26,7 +26,9 @@ import {
   checkWaitTimeExpiry,
   resetExpiredWaitTime,
   getNearbyFacilities,
-  addFacility 
+  addFacility,
+  calculateWaitTimeFromReviews,
+  updateFacilityWaitTimesFromReviews 
 } from '../firebase/communityPulseService';
 import { searchHealthcareFacilities } from '../services/googlePlacesService';
 import { HealthcareFacility, FacilityReview, MapPosition, CrowdingLevelColors } from '../types/communityPulse';
@@ -740,21 +742,14 @@ const CommunityPulse: React.FC = () => {
           onLoad={onMapLoad}
           onDragEnd={handleMapDragEnd}
           onZoomChanged={handleZoomChanged}
-          onClick={(event) => {
-            if (event.latLng) {
-              const newPosition = {
-                lat: event.latLng.lat(),
-                lng: event.latLng.lng()
-              };
-              setMapPosition(newPosition);
-              loadRealFacilities(newPosition, searchRadius * 1000);
-            }
-          }}
           options={{
-            disableDefaultUI: false,
+            scrollwheel: true,
+            gestureHandling: 'greedy',
             zoomControl: true,
-            streetViewControl: false,
             mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true,
+            disableDefaultUI: false,
             styles: [
               {
                 featureType: "all",
@@ -797,6 +792,16 @@ const CommunityPulse: React.FC = () => {
                 stylers: [{ color: "#acc9e2" }]
               }
             ]
+          }}
+          onClick={(event) => {
+            if (event.latLng) {
+              const newPosition = {
+                lat: event.latLng.lat(),
+                lng: event.latLng.lng()
+              };
+              setMapPosition(newPosition);
+              loadRealFacilities(newPosition, searchRadius * 1000);
+            }
           }}
         >
           {/* Display markers for each facility */}

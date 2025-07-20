@@ -261,6 +261,82 @@ export const resetExpiredWaitTime = async (facilityId: string): Promise<void> =>
 };
 
 /**
+ * Calculate average wait time from recent reviews
+ */
+export const calculateWaitTimeFromReviews = async (facilityId: string): Promise<number> => {
+  try {
+    const reviewsRef = collection(db, 'facilityReviews');
+    const q = query(
+      reviewsRef,
+      where('facilityId', '==', facilityId),
+      where('waitTime', '!=', null),
+      orderBy('timestamp', 'desc'),
+      firestoreLimit(10) // Get last 10 reviews with wait times
+    );
+    
+    const snapshot = await getDocs(q);
+    const reviews: FacilityReview[] = [];
+    
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.waitTime !== undefined && data.waitTime !== null) {
+        reviews.push({
+          id: doc.id,
+          ...data,
+          timestamp: data.timestamp?.toDate() || new Date()
+        } as FacilityReview);
+      }
+    });
+    
+    if (reviews.length === 0) {
+      return 0; // No wait time data available
+    }
+    
+    // Calculate weighted average - more recent reviews have higher weight
+    let totalWeight = 0;
+    let weightedSum = 0;
+    const now = new Date();
+    
+    reviews.forEach((review, index) => {
+      const hoursAgo = (now.getTime() - review.timestamp.getTime()) / (1000 * 60 * 60);
+      // Weight decreases with age: recent reviews (0-2 hours) get full weight,
+      // older reviews get progressively less weight
+      const ageWeight = Math.max(0.1, 1 - (hoursAgo / 24)); // Minimum 10% weight
+      const positionWeight = 1 / (index + 1); // First review gets full weight, others decrease
+      const finalWeight = ageWeight * positionWeight;
+      
+      weightedSum += review.waitTime! * finalWeight;
+      totalWeight += finalWeight;
+    });
+    
+    return Math.round(weightedSum / totalWeight);
+  } catch (error) {
+    console.error('Error calculating wait time from reviews:', error);
+    return 0;
+  }
+};
+
+/**
+ * Update facility wait times based on recent reviews
+ */
+export const updateFacilityWaitTimesFromReviews = async (facilityId: string): Promise<void> => {
+  try {
+    const calculatedWaitTime = await calculateWaitTimeFromReviews(facilityId);
+    const facilityRef = doc(db, 'facilities', facilityId);
+    
+    await updateDoc(facilityRef, {
+      currentWaitTime: calculatedWaitTime,
+      lastWaitTimeUpdate: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log(`📊 Updated wait time for facility ${facilityId}: ${calculatedWaitTime} minutes`);
+  } catch (error) {
+    console.error('Error updating facility wait times from reviews:', error);
+  }
+};
+
+/**
  * Update a facility's wait time
  */
 export const updateWaitTime = async (

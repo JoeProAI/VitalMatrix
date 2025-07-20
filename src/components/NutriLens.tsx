@@ -515,6 +515,130 @@ const NutriLens: React.FC = () => {
     });
   };
 
+  // Grok AI Analysis Functions
+  const analyzeImageWithAI = async (imageData: string) => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      console.log('🤖 Starting Grok AI analysis...');
+      
+      const response = await fetch('/api/ai-analyze-food', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: imageData }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`AI analysis failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('🎯 Grok AI analysis result:', result);
+      
+      // Extract comprehensive allergen information
+      const primaryFood = result.foodItems?.[0] || {};
+      const nutritionalData = result.nutritionalData || {};
+      
+      // Combine allergens from all sources
+      const allergenList = [...(primaryFood.allergens || []), ...(nutritionalData.allergens || [])];
+      const allFoods = result.foodItems || [primaryFood];
+      const allAllergens = allFoods.reduce((acc: string[], food: any) => {
+        if (food.allergens && Array.isArray(food.allergens)) {
+          acc.push(...food.allergens);
+        }
+        return acc;
+      }, allergenList);
+      
+      const uniqueAllergens = [...new Set(allAllergens)]
+        .filter((allergen: any) => allergen && typeof allergen === 'string' && allergen.length > 0)
+        .map((allergen: any) => (allergen as string).toLowerCase().trim());
+      
+      // Create comprehensive scan result
+      const scanResult: NutritionScanResult = {
+        id: Date.now().toString(),
+        timestamp: new Date(),
+        userId: currentUser?.uid || '',
+        productName: result.foodItems?.length > 1 
+          ? `${primaryFood.name} + ${result.foodItems.length - 1} other items`
+          : primaryFood.name || 'Food Item',
+        brand: primaryFood.brand || 'Unknown',
+        barcode: '',
+        nutritionPer100g: {
+          energy: nutritionalData.calories || 0,
+          protein: nutritionalData.protein || 0,
+          carbohydrates: nutritionalData.carbohydrates || 0,
+          fat: nutritionalData.fat || 0,
+          fiber: nutritionalData.fiber || 0,
+          sugar: nutritionalData.sugar || 0,
+          sodium: nutritionalData.sodium || 0,
+        },
+        allergens: uniqueAllergens,
+        healthScore: nutritionalData.healthScore || 70,
+        healthGrade: nutritionalData.healthGrade || 'B',
+        aiInsights: {
+          benefits: result.healthBenefits || [],
+          concerns: result.healthConcerns || [],
+          tips: [
+            ...result.personalizedTips || [],
+            ...(uniqueAllergens.length > 0 ? [`⚠️ Check ingredients for: ${uniqueAllergens.join(', ')}`] : [])
+          ]
+        },
+        warnings: uniqueAllergens.length > 0 
+          ? [`⚠️ ALLERGEN WARNING: Contains ${uniqueAllergens.join(', ')}`]
+          : []
+      };
+      
+      // Save to Firebase if user is authenticated
+      if (currentUser) {
+        await addNutritionEntry(scanResult, currentUser.uid);
+      }
+      
+      return scanResult;
+    } catch (error) {
+      console.error('❌ Grok AI analysis failed:', error);
+      setError(`AI analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const captureImageForAI = async () => {
+    if (!videoRef.current || !currentUser) return;
+    
+    try {
+      setLoading(true);
+      setError('');
+      
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      ctx?.drawImage(video, 0, 0);
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      
+      console.log('📸 Captured image for AI analysis');
+      
+      const result = await analyzeImageWithAI(imageData);
+      if (result) {
+        setScanResult(result);
+        stopCamera();
+        await loadUserData();
+      }
+    } catch (error) {
+      console.error('Error capturing image for AI:', error);
+      setError('Failed to capture image for analysis.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentUser) return;
@@ -525,7 +649,7 @@ const NutriLens: React.FC = () => {
       
       // Compress image aggressively before sending
       const compressedImageData = await compressImage(file, 600, 0.5);
-      const result = await analyzeFood(compressedImageData, currentUser.uid);
+      const result = await analyzeImageWithAI(compressedImageData);
       
       if (result) {
         setScanResult(result);
@@ -831,11 +955,11 @@ const NutriLens: React.FC = () => {
                         </div>
                         <div className="flex justify-center space-x-4">
                           <button
-                            onClick={captureImage}
+                            onClick={captureImageForAI}
                             disabled={loading}
                             className="bg-[#3b82f6] text-white py-2 px-4 rounded-lg hover:bg-[#2563eb] disabled:opacity-50"
                           >
-                            {loading ? 'Analyzing...' : 'Capture & Analyze'}
+                            {loading ? 'Analyzing...' : 'Capture & Analyze with AI'}
                           </button>
                           <button
                             onClick={stopCamera}
