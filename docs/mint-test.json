@@ -1,0 +1,14 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "VitalMatrix Test",
+  "theme": "prism",
+  "colors": {
+    "primary": "#3b82f6"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["introduction"]
+    }
+  ]
+}

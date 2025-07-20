@@ -11,24 +11,22 @@ import { IntercomProvider } from './components/IntercomProvider';
 import CommunityPulse from './components/CommunityPulse';
 import TestCommunityPulse from './components/TestCommunityPulse';
 import BasicTest from './components/BasicTest';
-import SplashPage from './components/SplashPage';
+
 import {
   Heart,
   Scan,
   Users,
   Shield,
-  Zap,
   Brain,
   Activity,
   Star,
+  Zap,
   ArrowRight,
   Menu,
   X,
   ChevronDown,
-  Hexagon,
   Clock,
   MapPin,
-  TrendingUp,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -111,7 +109,6 @@ const HomePageContent: React.FC = () => {
     ];
 
     return (
-      <>
       <div className="min-h-screen bg-pearl dark:bg-midnight text-midnight dark:text-pearl font-body transition-colors duration-300">
         {/* Background elements */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
@@ -788,6 +785,65 @@ const HomePageContent: React.FC = () => {
           </div>
         </section>
 
+        {/* Sponsors Section */}
+        <section className="relative bg-gradient-to-br from-pearl/50 to-mist/10 dark:from-midnight/80 dark:to-steel/5 py-16 border-t border-steel/10 dark:border-mist/5">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-display font-bold text-midnight dark:text-pearl mb-4">
+                Powered by Innovation Partners
+              </h2>
+              <p className="text-steel dark:text-mist max-w-2xl mx-auto text-lg leading-relaxed">
+                VitalMatrix is made possible by these incredible technology partners who believe in transforming healthcare through AI.
+              </p>
+              <a 
+                href="https://joeproai.mintlify.app/sponsors" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center mt-4 text-ocean hover:text-ocean-dark transition-colors duration-300 font-medium"
+              >
+                Learn about our partnerships
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-center">
+              {[
+                { name: 'Daytona.io', description: 'Development Environment', status: 'Integrating' },
+                { name: 'Modal', description: 'AI Infrastructure', status: 'Active' },
+                { name: 'Bolt.new', description: 'Rapid Development', status: 'Active' },
+                { name: 'Vercel', description: 'Deployment Platform', status: 'Active' },
+                { name: 'Machine', description: 'Cloud Infrastructure', status: 'Active' },
+                { name: 'AI Mastery', description: 'AI Education', status: 'Partner' }
+              ].map((sponsor, index) => (
+                <div key={index} className="group text-center">
+                  <div className="bg-white dark:bg-steel/10 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-steel/10 dark:border-mist/10 group-hover:border-ocean/30">
+                    <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-ocean/20 to-coral/20 rounded-lg flex items-center justify-center">
+                      <div className="w-6 h-6 bg-gradient-to-br from-ocean to-coral rounded opacity-80" />
+                    </div>
+                    <h3 className="font-semibold text-midnight dark:text-pearl text-sm mb-1">{sponsor.name}</h3>
+                    <p className="text-xs text-steel dark:text-mist mb-2">{sponsor.description}</p>
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                      sponsor.status === 'Active' ? 'bg-forest/20 text-forest' :
+                      sponsor.status === 'Integrating' ? 'bg-amber/20 text-amber' :
+                      'bg-ocean/20 text-ocean'
+                    }`}>
+                      {sponsor.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="text-center mt-12">
+              <p className="text-steel dark:text-mist text-sm font-mono">
+                Special thanks to our hackathon sponsors for making innovation possible
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Footer */}
         <footer className="border-t border-steel/20 dark:border-steel/30 py-16 px-6 lg:px-8 bg-mist/20 dark:bg-slate-blue/10">
           <div className="max-w-7xl mx-auto">
@@ -829,7 +885,6 @@ const HomePageContent: React.FC = () => {
           </div>
         </footer>
       </div>
-      </>
     );
 };
 

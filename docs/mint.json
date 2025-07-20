@@ -89,6 +89,12 @@
         "hackathon/features",
         "hackathon/tech-stack"
       ]
+    },
+    {
+      "group": "🤝 Partners",
+      "pages": [
+        "sponsors"
+      ]
     }
   ],
   "footerSocials": {
