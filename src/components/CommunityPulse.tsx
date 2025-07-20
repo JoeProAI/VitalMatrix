@@ -124,10 +124,10 @@ const CommunityPulse: React.FC = () => {
     }
   }, [googleMapsApiKey]);
 
-  // Initial loading when component mounts
+  // Initial loading when component mounts - get location once
   useEffect(() => {
     if (googleMapsApiKey && isLoaded) {
-      console.log('🚀 Component mounted, starting initial facility loading...');
+      console.log('🚀 Component mounted, getting user location...');
       // Try to get user location first, fallback to NYC
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -141,19 +141,27 @@ const CommunityPulse: React.FC = () => {
             loadRealFacilities(pos, searchRadius * 1000);
           },
           (error) => {
-            console.log('⚠️ Location access failed, using NYC default');
+            console.log('⚠️ Location access failed, using NYC fallback');
             setMapPosition(center);
             loadRealFacilities(center, searchRadius * 1000);
           },
           { timeout: 5000 }
         );
       } else {
-        console.log('🗺️ Geolocation not supported, using NYC default');
+        console.log('🗺️ Geolocation not supported, using NYC fallback');
         setMapPosition(center);
         loadRealFacilities(center, searchRadius * 1000);
       }
     }
-  }, [googleMapsApiKey, isLoaded, searchRadius]);
+  }, [googleMapsApiKey, isLoaded]); // Removed searchRadius to prevent re-requesting location
+
+  // Handle radius changes without re-requesting location
+  useEffect(() => {
+    if (mapPosition && googleMapsApiKey && isLoaded) {
+      console.log('🔄 Search radius changed, reloading facilities at current location...');
+      loadRealFacilities(mapPosition, searchRadius * 1000);
+    }
+  }, [searchRadius, mapPosition, googleMapsApiKey, isLoaded]);
 
   // Load real healthcare facilities from Google Places API with caching
   const loadRealFacilities = useCallback(async (position: MapPosition, radius: number = 5000) => {
