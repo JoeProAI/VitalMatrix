@@ -10,47 +10,47 @@ interface SeedReview {
   crowdingLevel: 'low' | 'moderate' | 'high';
 }
 
-// Sample realistic reviews
+// Sample reviews for hackathon demonstration
 const sampleReviews: SeedReview[] = [
   {
     rating: 5,
-    comment: "Excellent service! Staff was very professional and the wait time was shorter than expected.",
-    userName: "Sarah M.",
+    comment: "[Demo Review] Excellent service! Staff was very professional and the wait time was shorter than expected.",
+    userName: "Sarah M. (Demo)",
     waitTime: 25,
     crowdingLevel: 'moderate'
   },
   {
     rating: 4,
-    comment: "Good service but had to wait a bit longer than posted time. Overall positive experience.",
-    userName: "Mike R.",
+    comment: "[Demo Review] Good service but had to wait a bit longer than posted time. Overall positive experience.",
+    userName: "Mike R. (Demo)",
     waitTime: 35,
     crowdingLevel: 'high'
   },
   {
     rating: 5,
-    comment: "Great experience overall. Clean facility and friendly staff. Highly recommend!",
-    userName: "Jennifer L.",
+    comment: "[Demo Review] Great experience overall. Clean facility and friendly staff. Highly recommend!",
+    userName: "Jennifer L. (Demo)",
     waitTime: 15,
     crowdingLevel: 'low'
   },
   {
     rating: 3,
-    comment: "Average experience. Wait time was as expected but service could be better.",
-    userName: "David K.",
+    comment: "[Demo Review] Average experience. Wait time was as expected but service could be better.",
+    userName: "David K. (Demo)",
     waitTime: 45,
     crowdingLevel: 'high'
   },
   {
     rating: 4,
-    comment: "Professional staff and clean facility. Minor wait but worth it for the quality of care.",
-    userName: "Lisa P.",
+    comment: "[Demo Review] Professional staff and clean facility. Minor wait but worth it for the quality of care.",
+    userName: "Lisa P. (Demo)",
     waitTime: 20,
     crowdingLevel: 'moderate'
   },
   {
     rating: 2,
-    comment: "Long wait time and staff seemed overwhelmed. Hope they can improve their service.",
-    userName: "Robert T.",
+    comment: "[Demo Review] Long wait time and staff seemed overwhelmed. Hope they can improve their service.",
+    userName: "Robert T. (Demo)",
     waitTime: 60,
     crowdingLevel: 'high'
   }

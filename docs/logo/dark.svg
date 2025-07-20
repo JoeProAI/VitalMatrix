@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg width="200" height="50" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="50" fill="#121212"/>
-  <text x="10" y="30" font-family="Arial" font-size="20" font-weight="bold" fill="#07C983">VitalMatrix</text>
-  <path d="M160 15 L170 25 L160 35" stroke="#07C983" stroke-width="2" fill="none"/>
-  <path d="M170 15 L180 25 L170 35" stroke="#07C983" stroke-width="2" fill="none"/>
+  <rect width="200" height="50" fill="#121827"/>
+  <text x="10" y="30" font-family="Arial" font-size="20" font-weight="bold" fill="#38bdf8">VitalMatrix</text>
+  <path d="M160 15 L170 25 L160 35" stroke="#38bdf8" stroke-width="2" fill="none"/>
+  <path d="M170 15 L180 25 L170 35" stroke="#38bdf8" stroke-width="2" fill="none"/>
 </svg>
