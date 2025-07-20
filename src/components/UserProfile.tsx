@@ -30,7 +30,7 @@ const UserProfile: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'goals' | 'insights' | 'allergies'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'goals' | 'insights'>('profile');
   
   const [editForm, setEditForm] = useState({
     firstName: '',
@@ -165,7 +165,6 @@ const UserProfile: React.FC = () => {
         <div className="flex space-x-1 mb-6 bg-slate-blue/10 rounded-lg p-1">
           {[
             { id: 'profile', label: 'Profile', icon: User },
-            { id: 'allergies', label: 'Allergies & Diet', icon: Shield },
             { id: 'goals', label: 'Goals', icon: Target },
             { id: 'insights', label: 'Insights', icon: Info }
           ].map(tab => (
@@ -250,56 +249,7 @@ const UserProfile: React.FC = () => {
           </div>
         )}
 
-        {/* Allergies Tab */}
-        {activeTab === 'allergies' && (
-          <div className="bg-slate-blue/20 rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center space-x-2">
-              <AlertTriangle className="text-coral" size={20} />
-              <span>Allergies & Dietary Restrictions</span>
-            </h2>
-            
-            {isEditing && (
-              <div className="flex space-x-2 mb-4">
-                <input
-                  type="text"
-                  value={newAllergy}
-                  onChange={(e) => setNewAllergy(e.target.value)}
-                  placeholder="Add new allergy"
-                  className="flex-1 px-3 py-2 bg-midnight border border-steel/30 rounded-md focus:border-ocean focus:outline-none"
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddAllergy()}
-                />
-                <button
-                  onClick={handleAddAllergy}
-                  className="px-4 py-2 bg-coral/20 hover:bg-coral/30 rounded-md transition-colors"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-            )}
-            
-            <div className="flex flex-wrap gap-2">
-              {editForm.allergies.map((allergy, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center space-x-2 px-3 py-1 bg-coral/20 text-coral rounded-full text-sm"
-                >
-                  <span>{allergy}</span>
-                  {isEditing && (
-                    <button
-                      onClick={() => handleRemoveAllergy(allergy)}
-                      className="hover:bg-coral/30 rounded-full p-1"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </span>
-              ))}
-              {editForm.allergies.length === 0 && (
-                <span className="text-mist">No allergies recorded</span>
-              )}
-            </div>
-          </div>
-        )}
+
 
         {/* Goals Tab */}
         {activeTab === 'goals' && (

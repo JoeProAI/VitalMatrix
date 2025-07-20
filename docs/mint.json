@@ -68,10 +68,10 @@
     {
       "group": "⚡ API Reference",
       "pages": [
-        "api/authentication",
-        "api/nutrition",
-        "api/ai-analyze",
-        "api/community"
+        "api-reference/authentication",
+        "api-reference/nutrition",
+        "api-reference/ai-analyze-food",
+        "api-reference/spoonacular-integration"
       ]
     },
     {
@@ -91,7 +91,7 @@
       ]
     },
     {
-      "group": "🚀 Powered By",
+      "group": "🤝 Powered By",
       "pages": [
         "sponsors"
       ]

@@ -1,13 +1,30 @@
 /* VitalMatrix Custom Styling */
 
 :root {
-  --primary-blue: #3b82f6;
-  --dark-blue: #2563eb;
-  --light-blue: #60a5fa;
+  --primary-blue: #0ea5e9;
+  --dark-blue: #0284c7;
+  --light-blue: #38bdf8;
   --dark-bg: #121827;
   --secondary-bg: #1e293b;
   --text-light: #f8fafc;
   --text-secondary: #94a3b8;
+}
+
+/* Override logo/home button colors */
+.logo-container, .logo-container button, .logo-container a {
+  background-color: var(--primary-blue) !important;
+  color: white !important;
+}
+
+/* Override any green buttons */
+button[style*="background"], a[style*="background"] {
+  background-color: var(--primary-blue) !important;
+}
+
+/* Mintlify logo override */
+.mintlify-logo, .home-button, [data-testid="logo"] {
+  background-color: var(--primary-blue) !important;
+  color: white !important;
 }
 
 /* Button styles */
