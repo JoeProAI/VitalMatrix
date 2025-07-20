@@ -814,8 +814,9 @@ const HomePageContent: React.FC = () => {
                 { name: 'Modal', description: 'AI Infrastructure', status: 'Active', url: 'https://modal.com' },
                 { name: 'Bolt.new', description: 'Rapid Development', status: 'Active', url: 'https://bolt.new' },
                 { name: 'Vercel', description: 'Deployment Platform', status: 'Active', url: 'https://vercel.com' },
-                { name: 'Machine', description: 'Cloud Infrastructure', status: 'Active', url: 'https://machine.com' },
-                { name: 'AI Mastery', description: 'AI Education', status: 'Partner', url: 'https://aimastery.com' }
+                { name: 'Machine', description: 'Ideation & Architecture', status: 'Active', url: 'https://machine.myapps.ai/' },
+                { name: 'AI Mastery', description: 'AI Education', status: 'Partner', url: 'https://aimastery.com' },
+                { name: 'Runware.ai', description: 'AI Art Generation', status: 'Future', url: 'https://runware.ai' }
               ].map((sponsor, index) => (
                 <a key={index} href={sponsor.url} target="_blank" rel="noopener noreferrer" className="group text-center block">
                   <div className="bg-white dark:bg-steel/10 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-steel/10 dark:border-mist/10 group-hover:border-ocean/30 cursor-pointer transform group-hover:scale-105">
@@ -827,6 +828,7 @@ const HomePageContent: React.FC = () => {
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                       sponsor.status === 'Active' ? 'bg-forest/20 text-forest' :
                       sponsor.status === 'Integrating' ? 'bg-amber/20 text-amber' :
+                      sponsor.status === 'Future' ? 'bg-purple/20 text-purple' :
                       'bg-ocean/20 text-ocean'
                     }`}>
                       {sponsor.status}
