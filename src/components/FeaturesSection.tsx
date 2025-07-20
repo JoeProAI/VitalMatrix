@@ -128,9 +128,14 @@ const FeaturesSection = () => {
               </div>
               
               <div className="flex">
-                <button className={`px-6 py-3 rounded-full bg-${features[activeTab].color}/20 text-${features[activeTab].color} hover:bg-${features[activeTab].color}/30 transition-colors duration-300`}>
+                <a
+                  href="https://joeproai.mintlify.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`px-6 py-3 rounded-full bg-${features[activeTab].color}/20 text-${features[activeTab].color} hover:bg-${features[activeTab].color}/30 transition-colors duration-300 inline-block`}
+                >
                   Learn more about {features[activeTab].title}
-                </button>
+                </a>
               </div>
               
               {/* Feature visualization */}

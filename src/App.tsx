@@ -329,9 +329,9 @@ const HomePageContent: React.FC = () => {
                 Start Your Journey
                 <ArrowRight className="inline-block w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </a>
-              <button className="relative border-2 border-ocean text-ocean px-8 py-3 font-semibold text-base hover:bg-ocean/5 transition-all duration-300 transform hover:-translate-y-1" style={{ clipPath: 'polygon(16px 0, 100% 0, calc(100% - 16px) 100%, 0 100%)' }}>
+              <a href="https://joeproai.mintlify.app/" target="_blank" rel="noopener noreferrer" className="relative border-2 border-ocean text-ocean px-8 py-3 font-semibold text-base hover:bg-ocean/5 transition-all duration-300 transform hover:-translate-y-1 inline-block text-center" style={{ clipPath: 'polygon(16px 0, 100% 0, calc(100% - 16px) 100%, 0 100%)' }}>
                 Learn More
-              </button>
+              </a>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-4xl mx-auto">

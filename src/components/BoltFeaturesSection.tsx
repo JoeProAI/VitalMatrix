@@ -97,15 +97,18 @@ const BoltFeaturesSection: React.FC = () => {
                 ))}
               </ul>
               <div className="mt-8">
-                <button
-                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                <a
+                  href="https://joeproai.mintlify.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`px-6 py-2 rounded-full text-sm font-medium transition-all inline-block ${
                     index === 0
                       ? 'bg-electric-blue/20 hover:bg-electric-blue/40 text-electric-blue'
                       : 'bg-neon-purple/20 hover:bg-neon-purple/40 text-neon-purple'
                   }`}
                 >
                   Learn more
-                </button>
+                </a>
               </div>
             </div>
           ))}
