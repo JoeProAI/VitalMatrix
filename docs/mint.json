@@ -1,11 +1,12 @@
 {
+  "$schema": "https://mintlify.com/schema.json",
   "name": "VitalMatrix",
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
   },
   "favicon": "/favicon.svg",
-  "theme": "maple",
+  "theme": "prism",
   "colors": {
     "primary": "#3b82f6",
     "light": "#60a5fa",
@@ -15,7 +16,6 @@
       "to": "#60a5fa"
     }
   },
-  "_comment": "Documentation for VitalMatrix",
   "api": {
     "baseUrl": "https://vitalmatrix.dev/api",
     "auth": {
@@ -170,6 +170,5 @@
   "feedback": {
     "suggestEdit": true,
     "raiseIssue": true
-  },
-  "style": "/custom.css"
+  }
 }
