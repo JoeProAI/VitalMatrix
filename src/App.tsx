@@ -9,6 +9,7 @@ import UserDashboard from './components/UserDashboard';
 import NutriLens from './components/NutriLens';
 import { IntercomProvider } from './components/IntercomProvider';
 import CommunityPulse from './components/CommunityPulse';
+import UserProfile from './components/UserProfile';
 import TestCommunityPulse from './components/TestCommunityPulse';
 import BasicTest from './components/BasicTest';
 
@@ -932,6 +933,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <NutriLens />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <UserProfile />
                 </ProtectedRoute>
               } 
             />
