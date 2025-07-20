@@ -5,6 +5,7 @@ import {
   scanBarcode,
   analyzeFood, 
   generateHealthInsights,
+  addNutritionEntry,
   NutritionScanResult,
   HealthInsight 
 } from '../services/nutriLensService';
@@ -593,7 +594,21 @@ const NutriLens: React.FC = () => {
       
       // Save to Firebase if user is authenticated
       if (currentUser) {
-        await addNutritionEntry(scanResult, currentUser.uid);
+        // Filter out undefined micronutrients
+        const cleanMicronutrients = scanResult.micronutrients ? 
+          Object.fromEntries(
+            Object.entries(scanResult.micronutrients).filter(([_, value]) => value !== undefined)
+          ) as Record<string, number> : undefined;
+        
+        await addNutritionEntry({
+          userId: currentUser.uid,
+          timestamp: new Date(),
+          foodItem: scanResult.foodItem,
+          calories: scanResult.calories,
+          macros: scanResult.macros,
+          micronutrients: cleanMicronutrients,
+          scanMethod: 'ai_vision'
+        });
       }
       
       return scanResult;

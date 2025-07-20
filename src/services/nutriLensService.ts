@@ -654,6 +654,9 @@ const calculateHealthScore = (product: any): number => {
   return Math.max(0, Math.min(100, score));
 };
 
+// Re-export addNutritionEntry from userProfileService for convenience
+export { addNutritionEntry } from './userProfileService';
+
 const calculateHealthGrade = (product: any): 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D+' | 'D' | 'F' => {
   const score = calculateHealthScore(product);
   
