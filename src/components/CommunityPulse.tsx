@@ -256,8 +256,43 @@ const CommunityPulse: React.FC = () => {
           })
         );
         
-        setFacilities(facilitiesWithAutoWaitTimes);
-        console.log(`Loaded ${facilitiesWithAutoWaitTimes.length} real healthcare facilities with auto-generated wait times`);
+        // Update wait times based on recent reviews
+        try {
+          console.log('🔄 Updating wait times from recent reviews...');
+          
+          // Update each facility's wait time based on reviews
+          const updatedFacilities = await Promise.all(
+            facilitiesWithAutoWaitTimes.map(async (facility) => {
+              if (facility.id) {
+                try {
+                  // Update the facility in Firebase with review-based wait time
+                  await updateFacilityWaitTimesFromReviews(facility.id);
+                  
+                  // Get the updated wait time
+                  const reviewBasedWaitTime = await calculateWaitTimeFromReviews(facility.id);
+                  if (reviewBasedWaitTime !== null && reviewBasedWaitTime > 0) {
+                    console.log(`📊 Updated ${facility.name} wait time from reviews: ${reviewBasedWaitTime} min`);
+                    return {
+                      ...facility,
+                      currentWaitTime: reviewBasedWaitTime,
+                      lastWaitTimeUpdate: new Date()
+                    };
+                  }
+                } catch (error) {
+                  console.log(`Could not calculate review-based wait time for ${facility.name}:`, error);
+                }
+              }
+              return facility;
+            })
+          );
+          
+          setFacilities(updatedFacilities);
+          console.log(`✅ Loaded ${updatedFacilities.length} real healthcare facilities with review-based wait times`);
+        } catch (error) {
+          console.error('Error updating wait times from reviews:', error);
+          setFacilities(facilitiesWithAutoWaitTimes);
+          console.log(`Loaded ${facilitiesWithAutoWaitTimes.length} real healthcare facilities with auto-generated wait times`);
+        }
       } else {
         setFacilities(facilitiesWithFirebaseData);
         console.log(`Loaded ${facilitiesWithFirebaseData.length} real healthcare facilities:`, facilitiesWithFirebaseData.map((f: HealthcareFacility) => f.name));
