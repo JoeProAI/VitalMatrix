@@ -197,8 +197,27 @@ const CommunityPulse: React.FC = () => {
         })
       );
       
-      setFacilities(facilitiesWithFirebaseData);
-      console.log(`Loaded ${facilitiesWithFirebaseData.length} real healthcare facilities:`, facilitiesWithFirebaseData.map((f: HealthcareFacility) => f.name));
+      // Add demo wait times for hackathon presentation
+      const facilitiesWithDemoData = facilitiesWithFirebaseData.map((facility, index) => {
+        // Add realistic demo wait times if facility doesn't have current data
+        if (!facility.currentWaitTime || facility.currentWaitTime === 0) {
+          const demoWaitTimes = [15, 30, 45, 25, 60, 20, 35, 50, 40, 55, 10, 75, 90, 12, 28];
+          const demoCrowdingLevels: ('low' | 'moderate' | 'high')[] = ['low', 'moderate', 'high', 'moderate', 'high', 'low', 'moderate', 'high', 'moderate', 'low'];
+          
+          return {
+            ...facility,
+            currentWaitTime: demoWaitTimes[index % demoWaitTimes.length],
+            crowdingLevel: demoCrowdingLevels[index % demoCrowdingLevels.length],
+            lastWaitTimeUpdate: new Date(Date.now() - Math.random() * 3600000), // Random time within last hour
+            averageRating: 3.5 + Math.random() * 1.5, // Random rating between 3.5-5.0
+            ratingCount: Math.floor(Math.random() * 50) + 5 // Random review count 5-55
+          };
+        }
+        return facility;
+      });
+      
+      setFacilities(facilitiesWithDemoData);
+      console.log(`Loaded ${facilitiesWithDemoData.length} real healthcare facilities with demo data:`, facilitiesWithDemoData.map((f: HealthcareFacility) => `${f.name} - ${f.currentWaitTime}min`));
     } catch (err) {
       console.error('Error loading real facilities:', err);
       setError('Failed to load healthcare facilities. Please try again.');
