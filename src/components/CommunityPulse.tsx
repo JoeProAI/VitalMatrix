@@ -78,6 +78,18 @@ if (!googleMapsApiKey) {
 // Static libraries array to prevent performance warnings
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 
+// Helper functions for wait time formatting
+const formatWaitTime = (facility: HealthcareFacility): string => {
+  if (facility.currentWaitTime !== undefined) {
+    return facility.currentWaitTime === 0 ? 'No wait' : `${facility.currentWaitTime} min`;
+  }
+  return 'Unknown';
+};
+
+const formatReviewWaitTime = (waitTime: number): string => {
+  return waitTime === 0 ? 'No wait' : `${waitTime} min`;
+};
+
 const CommunityPulse: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -161,7 +173,7 @@ const CommunityPulse: React.FC = () => {
       console.log('🔄 Search radius changed, reloading facilities at current location...');
       loadRealFacilities(mapPosition, searchRadius * 1000);
     }
-  }, [searchRadius, mapPosition, googleMapsApiKey, isLoaded]);
+  }, [searchRadius, googleMapsApiKey, isLoaded]); // Removed mapPosition to prevent reloading on map drag
 
   // Load real healthcare facilities from Google Places API with caching
   const loadRealFacilities = useCallback(async (position: MapPosition, radius: number = 5000) => {
