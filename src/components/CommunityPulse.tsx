@@ -73,8 +73,8 @@ if (!googleMapsApiKey) {
 }
 
 const CommunityPulse: React.FC = () => {
-  const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [facilities, setFacilities] = useState<HealthcareFacility[]>([]);
   const [selectedFacility, setSelectedFacility] = useState<HealthcareFacility | null>(null);
   const [reviews, setReviews] = useState<FacilityReview[]>([]);
@@ -197,27 +197,69 @@ const CommunityPulse: React.FC = () => {
         })
       );
       
-      // Add demo wait times for hackathon presentation
-      const facilitiesWithDemoData = facilitiesWithFirebaseData.map((facility, index) => {
-        // Add realistic demo wait times if facility doesn't have current data
-        if (!facility.currentWaitTime || facility.currentWaitTime === 0) {
-          const demoWaitTimes = [15, 30, 45, 25, 60, 20, 35, 50, 40, 55, 10, 75, 90, 12, 28];
-          const demoCrowdingLevels: ('low' | 'moderate' | 'high')[] = ['low', 'moderate', 'high', 'moderate', 'high', 'low', 'moderate', 'high', 'moderate', 'low'];
-          
-          return {
-            ...facility,
-            currentWaitTime: demoWaitTimes[index % demoWaitTimes.length],
-            crowdingLevel: demoCrowdingLevels[index % demoCrowdingLevels.length],
-            lastWaitTimeUpdate: new Date(Date.now() - Math.random() * 3600000), // Random time within last hour
-            averageRating: 3.5 + Math.random() * 1.5, // Random rating between 3.5-5.0
-            ratingCount: Math.floor(Math.random() * 50) + 5 // Random review count 5-55
-          };
-        }
-        return facility;
-      });
-      
-      setFacilities(facilitiesWithDemoData);
-      console.log(`Loaded ${facilitiesWithDemoData.length} real healthcare facilities with demo data:`, facilitiesWithDemoData.map((f: HealthcareFacility) => `${f.name} - ${f.currentWaitTime}min`));
+      // Auto-generate realistic wait times for facilities without current data (only when authenticated)
+      if (currentUser) {
+        const facilitiesWithAutoWaitTimes = await Promise.all(
+          facilitiesWithFirebaseData.map(async (facility) => {
+            // Only add wait times if facility doesn't have recent data
+            const needsWaitTime = !facility.currentWaitTime || 
+                                 !facility.lastWaitTimeUpdate || 
+                                 (new Date().getTime() - new Date(facility.lastWaitTimeUpdate).getTime()) > 3600000; // 1 hour old
+            
+            if (needsWaitTime && facility.id) {
+              try {
+                // Generate realistic wait time based on facility type and current time
+                const currentHour = new Date().getHours();
+                const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
+                
+                let baseWaitTime;
+                let crowdingLevel: 'low' | 'moderate' | 'high';
+                
+                if (facility.name.toLowerCase().includes('emergency') || facility.name.toLowerCase().includes('er')) {
+                  baseWaitTime = isWeekend ? 90 : 75;
+                  if (currentHour >= 18 || currentHour <= 6) baseWaitTime += 30;
+                  crowdingLevel = baseWaitTime > 90 ? 'high' : 'moderate';
+                } else if (facility.name.toLowerCase().includes('urgent') || facility.name.toLowerCase().includes('clinic')) {
+                  baseWaitTime = isWeekend ? 45 : 35;
+                  if (currentHour >= 17 || currentHour <= 9) baseWaitTime += 15;
+                  crowdingLevel = baseWaitTime > 50 ? 'high' : baseWaitTime > 25 ? 'moderate' : 'low';
+                } else if (facility.name.toLowerCase().includes('pharmacy')) {
+                  baseWaitTime = isWeekend ? 15 : 10;
+                  if (currentHour >= 17 || currentHour <= 9) baseWaitTime += 5;
+                  crowdingLevel = baseWaitTime > 20 ? 'moderate' : 'low';
+                } else {
+                  baseWaitTime = isWeekend ? 30 : 25;
+                  if (currentHour >= 16 || currentHour <= 10) baseWaitTime += 10;
+                  crowdingLevel = baseWaitTime > 40 ? 'high' : baseWaitTime > 20 ? 'moderate' : 'low';
+                }
+                
+                const randomVariation = Math.floor(Math.random() * 20) - 10;
+                const finalWaitTime = Math.max(5, baseWaitTime + randomVariation);
+                
+                // Update the facility in Firebase with realistic wait time
+                await updateWaitTime(facility.id, finalWaitTime, currentUser.uid, crowdingLevel);
+                
+                return {
+                  ...facility,
+                  currentWaitTime: finalWaitTime,
+                  crowdingLevel: crowdingLevel,
+                  lastWaitTimeUpdate: new Date()
+                };
+              } catch (error) {
+                console.log(`Could not auto-generate wait time for ${facility.name}:`, error);
+                return facility;
+              }
+            }
+            return facility;
+          })
+        );
+        
+        setFacilities(facilitiesWithAutoWaitTimes);
+        console.log(`Loaded ${facilitiesWithAutoWaitTimes.length} real healthcare facilities with auto-generated wait times`);
+      } else {
+        setFacilities(facilitiesWithFirebaseData);
+        console.log(`Loaded ${facilitiesWithFirebaseData.length} real healthcare facilities:`, facilitiesWithFirebaseData.map((f: HealthcareFacility) => f.name));
+      }
     } catch (err) {
       console.error('Error loading real facilities:', err);
       setError('Failed to load healthcare facilities. Please try again.');
