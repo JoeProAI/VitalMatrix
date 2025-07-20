@@ -336,9 +336,9 @@ const HomePageContent: React.FC = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 max-w-4xl mx-auto">
               {[
-                { icon: Users, label: 'Active Communities', value: '50K+', color: 'ocean' },
+                { icon: Users, label: 'Active Communities', value: '500+', color: 'ocean' },
                 { icon: Clock, label: 'Real-Time Updates', value: '24/7', color: 'coral' },
-                { icon: Brain, label: 'AI Accuracy', value: '99.9%', color: 'forest' },
+                { icon: Brain, label: 'AI Accuracy', value: '95.2%', color: 'forest' },
                 { icon: Shield, label: 'Privacy Protected', value: '100%', color: 'lavender' },
               ].map((stat, index) => (
                 <div key={index} className="text-center animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
