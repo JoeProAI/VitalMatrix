@@ -89,13 +89,26 @@ export default async function handler(
       console.log('Continuing with partial results after Modal API failure');
     }
 
-    // Step 3: Return combined results
+    // Step 3: Return combined results with comprehensive Grok data
     const response = {
       success: true,
+      timestamp: new Date().toISOString(),
+      // Core data
       foodItems: grokResponse.foodItems,
       description: grokResponse.description,
       nutritionalData,
-      detailedAnalysis: grokResponse.detailedAnalysis
+      detailedAnalysis: grokResponse.detailedAnalysis,
+      // Comprehensive Grok AI data
+      allergens: grokResponse.allergens || [],
+      healthBenefits: grokResponse.healthBenefits || [],
+      healthConcerns: grokResponse.healthConcerns || [],
+      concerns: grokResponse.concerns || [],
+      alternatives: grokResponse.alternatives || [],
+      personalizedTips: grokResponse.personalizedTips || [],
+      warnings: grokResponse.warnings || [],
+      dietaryFlags: grokResponse.dietaryFlags || [],
+      // Store raw Grok data for maximum data capture
+      rawGrokData: grokResponse.rawGrokData || grokResponse
     };
     
     console.log('Analysis complete, returning results');

@@ -10,6 +10,17 @@ export interface GrokVisionResponse {
     portion: string;
   }[];
   detailedAnalysis: string;
+  // Comprehensive data from Grok AI
+  allergens?: string[];
+  nutritionalData?: any;
+  healthBenefits?: string[];
+  healthConcerns?: string[];
+  concerns?: string[];
+  alternatives?: string[];
+  personalizedTips?: string[];
+  warnings?: string[];
+  dietaryFlags?: string[];
+  rawGrokData?: any;
 }
 
 /**
@@ -64,37 +75,72 @@ export async function analyzeImageWithGrok(imageDataUrl: string): Promise<GrokVi
             content: [
               { 
                 type: "text", 
-text: `Analyze this food image and provide a detailed nutritional analysis. Return your response as a JSON object with the following structure:
+text: `Analyze this food image and provide comprehensive nutritional and allergen analysis. Return your response as a JSON object with the following EXACT structure:
 
 {
-  "foods": [
+  "success": true,
+  "timestamp": "2025-07-20T05:32:04.917Z",
+  "allergens": ["wheat", "gluten", "dairy", "milk", "eggs", "nuts", "peanuts", "soy", "sesame"],
+  "foodItems": [
     {
       "name": "Food item name",
+      "brand": "Brand if visible",
+      "category": "Food category",
+      "confidence": 0.9,
       "portion": "Estimated portion size",
-      "calories": "Estimated calories per serving",
-      "macros": {
-        "protein": "X grams",
-        "carbs": "X grams",
-        "fat": "X grams",
-        "fiber": "X grams"
-      },
-      "vitamins": ["Key vitamins present"],
-      "minerals": ["Key minerals present"]
+      "servingSize": "1 serving",
+      "calories": 250,
+      "protein": 15,
+      "carbs": 30,
+      "fat": 10,
+      "fiber": 5,
+      "sugar": 8,
+      "sodium": 400,
+      "allergens": ["milk", "wheat"],
+      "benefits": ["High in protein"],
+      "concerns": ["High in sodium"],
+      "alternatives": ["Low-sodium version"],
+      "tips": ["Consume in moderation"]
     }
   ],
-  "totalNutrition": {
-    "calories": "Total estimated calories",
-    "protein": "Total protein",
-    "carbs": "Total carbohydrates",
-    "fat": "Total fat"
+  "nutritionalData": {
+    "calories": 250,
+    "protein": 15,
+    "carbohydrates": 30,
+    "carbs": 30,
+    "fat": 10,
+    "fiber": 5,
+    "sugar": 8,
+    "sodium": 400,
+    "healthScore": 75,
+    "healthGrade": "B+",
+    "allergens": ["milk", "wheat"],
+    "warnings": ["High in sodium", "Contains allergens"],
+    "dietaryFlags": ["vegetarian", "high-protein"],
+    "healthInsights": ["Provides protein", "Contains fiber"],
+    "nutritionalEstimate": {
+      "calories": 250,
+      "protein": 15,
+      "carbs": 30,
+      "fat": 10
+    }
   },
-  "healthScore": "1-10 rating",
-  "benefits": ["Health benefits"],
-  "concerns": ["Health concerns if any"],
-  "dietaryTags": ["vegetarian", "vegan", "gluten-free", "dairy-free", "keto-friendly", "high-protein", "low-carb", etc.]
+  "healthBenefits": ["Good source of protein", "Contains essential nutrients"],
+  "healthConcerns": ["High in sodium", "Contains processed ingredients"],
+  "concerns": ["High sodium content", "Allergen exposure risk"],
+  "alternatives": ["Choose low-sodium options", "Look for organic versions"],
+  "personalizedTips": ["Pair with vegetables", "Drink water to offset sodium"],
+  "warnings": ["High in calories and sodium", "Contains multiple allergens"],
+  "dietaryFlags": ["processed", "high-sodium"]
 }
 
-Provide accurate nutritional estimates based on visible portions and typical serving sizes.` 
+IMPORTANT INSTRUCTIONS:
+1. Identify ALL visible allergens: wheat, gluten, dairy, milk, eggs, nuts, peanuts, soy, sesame, shellfish, fish
+2. Provide realistic calorie and macro estimates based on visible portions
+3. Include comprehensive health insights and warnings
+4. Return actual numbers, not strings for nutritional values
+5. Be thorough in allergen detection - check ingredients, cooking methods, cross-contamination risks
+6. Provide actionable health tips and alternatives` 
               },
               { 
                 type: "image_url", 
@@ -125,116 +171,119 @@ Provide accurate nutritional estimates based on visible portions and typical ser
     }
 
     const aiContent = response.data.choices[0].message.content;
-    console.log('AI Content received, length:', aiContent.length);
+    console.log('🤖 Grok AI Content received, length:', aiContent.length);
+    console.log('📄 Raw Grok response:', aiContent.substring(0, 500) + '...');
 
-    // Extract food items and other details
-    const foodItems: Array<{name: string; confidence: number; portion: string}> = [];
+    // Try to parse JSON response
+    let grokData: any = {};
     
-    // Try to parse the response based on formatting
     try {
-      // First check if there are JSON blocks in the response
-      const jsonMatch = aiContent.match(/```json([\s\S]*?)```/);
+      // First try to parse as direct JSON
+      try {
+        grokData = JSON.parse(aiContent);
+        console.log('✅ Successfully parsed direct JSON response');
+      } catch {
+        // Try to extract JSON from code blocks
+        const jsonMatch = aiContent.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          grokData = JSON.parse(jsonMatch[1].trim());
+          console.log('✅ Successfully parsed JSON from code block');
+        } else {
+          // Try to extract JSON from any curly braces
+          const jsonBracesMatch = aiContent.match(/\{[\s\S]*\}/);
+          if (jsonBracesMatch) {
+            grokData = JSON.parse(jsonBracesMatch[0]);
+            console.log('✅ Successfully parsed JSON from braces match');
+          } else {
+            throw new Error('No JSON found in response');
+          }
+        }
+      }
       
-      if (jsonMatch && jsonMatch[1]) {
-        // Parse any JSON data in the response
-        const jsonData = JSON.parse(jsonMatch[1].trim());
-        if (jsonData.foods && Array.isArray(jsonData.foods)) {
-          jsonData.foods.forEach((food: any) => {
-            foodItems.push({
-              name: food.name || 'Unknown food',
-              confidence: food.confidence || 0.9,
-              portion: food.portion || 'regular',
-            });
+      console.log('🎯 Parsed Grok data structure:', Object.keys(grokData));
+      
+      // Process food items
+      const foodItems: Array<{name: string; confidence: number; portion: string}> = [];
+      
+      if (grokData.foodItems && Array.isArray(grokData.foodItems)) {
+        grokData.foodItems.forEach((food: any) => {
+          foodItems.push({
+            name: food.name || 'Unknown food',
+            confidence: food.confidence || 0.9,
+            portion: food.portion || food.servingSize || 'regular',
           });
-        }
-      } else {
-        // Extract food items by parsing text sections
-        const lines = aiContent.split('\n');
-        let inFoodSection = false;
-        const foodMatches: string[] = [];
-        
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          const lowerLine = line.toLowerCase();
-          
-          // Identify food item sections
-          if (lowerLine.includes('food item') || lowerLine.includes('identified') || 
-              lowerLine.match(/^\d+\.\s*identified/) || lowerLine.match(/^food items:/i)) {
-            inFoodSection = true;
-            continue;
-          }
-          
-          if (inFoodSection && line) {
-            // Check for section transitions
-            if (lowerLine.includes('nutrition') || lowerLine.includes('health') || 
-                lowerLine.includes('dietary') || lowerLine.match(/^\d+\.\s*(nutrition|health)/)) {
-              inFoodSection = false;
-              continue;
-            }
-            
-            // Identify food items (usually formatted as lists or with colons)
-            if (line.match(/^[-•*]\s/) || line.match(/^\d+\.\s/) || 
-                line.includes(':') || (line.length > 3 && !line.match(/^[#>]/))) {
-              foodMatches.push(line);
-            }
-          }
-        }
-        
-        // Process the identified food items
-        foodMatches.forEach((match: string, index: number) => {
-          // Clean up the text and extract the food name
-          let name = match;
-          name = name.replace(/^[-•*\d\.\s]+/, '').trim(); // Remove list markers
-          name = name.split(/[:–—]/)[0].trim(); // Take part before colon or dash
-          
-          if (name && name.length > 2 && !name.toLowerCase().includes('could not identify')) {
-            foodItems.push({
-              name,
-              confidence: 0.9 - (index * 0.05), // Decrease confidence for later items
-              portion: 'regular',
-            });
-          }
+        });
+        console.log(`🍽️ Processed ${foodItems.length} food items from Grok`);
+      }
+      
+      // If no food items, try legacy 'foods' field
+      if (foodItems.length === 0 && grokData.foods && Array.isArray(grokData.foods)) {
+        grokData.foods.forEach((food: any) => {
+          foodItems.push({
+            name: food.name || 'Unknown food',
+            confidence: food.confidence || 0.9,
+            portion: food.portion || 'regular',
+          });
+        });
+        console.log(`🍽️ Processed ${foodItems.length} food items from legacy 'foods' field`);
+      }
+      
+      // Final fallback if no food items were extracted
+      if (foodItems.length === 0) {
+        console.log('⚠️ No food items found, creating fallback');
+        foodItems.push({
+          name: "Unidentified food item",
+          confidence: 0.5,
+          portion: 'regular',
         });
       }
       
-      // If no food items were found, extract potential mentions from the text
-      if (foodItems.length === 0) {
-        // Look for food item mentions using common patterns
-        const foodMentionMatches = aiContent.match(/\b(apple|banana|orange|pizza|burger|sandwich|salad|pasta|rice|chicken|beef|fish)\b/ig);
-        if (foodMentionMatches && foodMentionMatches.length > 0) {
-          // Deduplicate
-          const uniqueFoods = [...new Set(foodMentionMatches.map(item => {
-            return item.charAt(0).toUpperCase() + item.slice(1).toLowerCase();
-          }))];
-          
-          uniqueFoods.forEach((food, index: number) => {
-            foodItems.push({
-              name: typeof food === 'string' ? food : String(food),
-              confidence: 0.8 - (index * 0.1),
-              portion: 'regular',
-            });
-          });
-        }
-      }
+      console.log('✨ Returning comprehensive Grok response with full data structure');
+      
+      // Return the complete Grok data structure for comprehensive processing
+      return {
+        description: grokData.description || aiContent.substring(0, 200) + (aiContent.length > 200 ? '...' : ''),
+        foodItems,
+        detailedAnalysis: aiContent,
+        // Include all the comprehensive data from Grok
+        allergens: grokData.allergens || [],
+        nutritionalData: grokData.nutritionalData || {},
+        healthBenefits: grokData.healthBenefits || [],
+        healthConcerns: grokData.healthConcerns || grokData.concerns || [],
+        concerns: grokData.concerns || [],
+        alternatives: grokData.alternatives || [],
+        personalizedTips: grokData.personalizedTips || [],
+        warnings: grokData.warnings || [],
+        dietaryFlags: grokData.dietaryFlags || [],
+        // Store raw data for comprehensive extraction
+        rawGrokData: grokData
+      };
+      
     } catch (parseError) {
-      console.error('Error parsing Grok response:', parseError);
+      console.error('❌ Error parsing Grok response:', parseError);
+      console.log('📝 Falling back to text analysis...');
+      
+      // Fallback: create basic response
+      return {
+        description: aiContent.substring(0, 200) + (aiContent.length > 200 ? '...' : ''),
+        foodItems: [{
+          name: "Unidentified food item",
+          confidence: 0.5,
+          portion: 'regular',
+        }],
+        detailedAnalysis: aiContent,
+        allergens: [],
+        nutritionalData: {},
+        healthBenefits: [],
+        healthConcerns: [],
+        concerns: [],
+        alternatives: [],
+        personalizedTips: [],
+        warnings: ['AI analysis parsing failed'],
+        dietaryFlags: [],
+        rawGrokData: { error: 'Parsing failed', rawContent: aiContent }
+      };
     }
-    
-    // Final fallback if no food items were extracted
-    if (foodItems.length === 0) {
-      foodItems.push({
-        name: "Unidentified food item",
-        confidence: 0.5,
-        portion: 'regular',
-      });
-    }
-    
-    // Create and return the formatted response
-    return {
-      description: aiContent.substring(0, 200) + (aiContent.length > 200 ? '...' : ''), // Truncated description
-      foodItems,
-      detailedAnalysis: aiContent
-    };
   } catch (error: any) {
     console.error('Error analyzing image with Grok:', error);
     

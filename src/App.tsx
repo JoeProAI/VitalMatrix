@@ -35,7 +35,7 @@ import {
 
 const HomePageContent: React.FC = () => {
     const navigate = useNavigate();
-    const { currentUser } = useAuth();
+    const { currentUser, logout } = useAuth();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
@@ -70,6 +70,14 @@ const HomePageContent: React.FC = () => {
     const handleTryNutriLens = () => {
       if (currentUser) {
         navigate('/nutrilens');
+      } else {
+        navigate('/signup');
+      }
+    };
+
+    const handleCommunityPulse = () => {
+      if (currentUser) {
+        navigate('/community-pulse');
       } else {
         navigate('/signup');
       }
@@ -192,7 +200,7 @@ const HomePageContent: React.FC = () => {
               
               <div className="hidden md:flex items-center space-x-8">
                 <a href="#features" className="text-steel dark:text-mist hover:text-ocean transition-colors duration-300 font-medium">Features</a>
-                <a href="#community" className="text-steel dark:text-mist hover:text-ocean transition-colors duration-300 font-medium">Community</a>
+                <button onClick={handleCommunityPulse} className="text-steel dark:text-mist hover:text-ocean transition-colors duration-300 font-medium">Community Pulse</button>
                 <a href="#about" className="text-steel dark:text-mist hover:text-ocean transition-colors duration-300 font-medium">About</a>
                 
                 {/* Dark mode toggle */}
@@ -206,13 +214,28 @@ const HomePageContent: React.FC = () => {
                 
                 {/* Dashboard/Sign In Button */}
                 {currentUser ? (
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="relative bg-forest text-pearl px-8 py-3 font-medium hover:bg-forest-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-block"
-                    style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}
-                  >
-                    Dashboard
-                  </button>
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => navigate('/dashboard')}
+                      className="relative bg-forest text-pearl px-6 py-3 font-medium hover:bg-forest-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-block"
+                      style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}
+                    >
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await logout();
+                          navigate('/');
+                        } catch (error) {
+                          console.error('Sign out error:', error);
+                        }
+                      }}
+                      className="text-steel dark:text-mist hover:text-coral transition-colors duration-300 font-medium"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
                 ) : (
                   <a href="/login" className="relative bg-ocean text-pearl px-8 py-3 font-medium hover:bg-ocean-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 inline-block" style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}>
                     Get Started
@@ -234,7 +257,7 @@ const HomePageContent: React.FC = () => {
             <div className="md:hidden bg-pearl/98 dark:bg-midnight/98 backdrop-blur-lg border-t border-steel/10 dark:border-steel/20">
               <div className="px-6 py-6 space-y-4">
                 <a href="#features" className="block text-steel dark:text-mist hover:text-ocean transition-colors font-medium">Features</a>
-                <a href="#community" className="block text-steel dark:text-mist hover:text-ocean transition-colors font-medium">Community</a>
+                <button onClick={handleCommunityPulse} className="block text-steel dark:text-mist hover:text-ocean transition-colors font-medium">Community Pulse</button>
                 <a href="#about" className="block text-steel dark:text-mist hover:text-ocean transition-colors font-medium">About</a>
                 <button
                   onClick={toggleDarkMode}
@@ -244,13 +267,29 @@ const HomePageContent: React.FC = () => {
                   {isDarkMode ? 'Light Mode' : 'Dark Mode'}
                 </button>
                 {currentUser ? (
-                  <button
-                    onClick={() => navigate('/dashboard')}
-                    className="w-full bg-forest text-pearl px-6 py-3 font-medium inline-block text-center"
-                    style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}
-                  >
-                    Dashboard
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => navigate('/dashboard')}
+                      className="w-full bg-forest text-pearl px-6 py-3 font-medium inline-block text-center"
+                      style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}
+                    >
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await logout();
+                          navigate('/');
+                          setIsMenuOpen(false);
+                        } catch (error) {
+                          console.error('Sign out error:', error);
+                        }
+                      }}
+                      className="block text-steel dark:text-mist hover:text-coral transition-colors font-medium"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
                 ) : (
                   <a href="/login" className="w-full bg-ocean text-pearl px-6 py-3 font-medium inline-block text-center" style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}>
                     Get Started
@@ -381,19 +420,21 @@ const HomePageContent: React.FC = () => {
 
                     <div className="mt-8 pt-6 border-t border-steel/10 dark:border-steel/20">
                       {index === 1 ? (
-                        <a 
-                          href="https://vitalmatrix-app.vercel.app/" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
+                        <button 
+                          onClick={handleTryNutriLens}
                           className="inline-flex items-center bg-coral text-pearl px-6 py-3 font-semibold hover:bg-coral-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-mono uppercase tracking-wide text-sm"
                           style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}
                         >
                           TRY.NOW
                           <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </a>
+                        </button>
                       ) : (
-                        <button className="text-ocean font-semibold hover:text-ocean-dark transition-colors duration-300 flex items-center font-mono uppercase tracking-wide text-sm">
-                          LEARN.MORE
+                        <button 
+                          onClick={handleCommunityPulse}
+                          className="inline-flex items-center bg-ocean text-pearl px-6 py-3 font-semibold hover:bg-ocean-dark transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 font-mono uppercase tracking-wide text-sm"
+                          style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%)' }}
+                        >
+                          TRY.NOW
                           <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                         </button>
                       )}

@@ -36,12 +36,26 @@ export interface PlacesSearchResponse {
 
 // Map Google Places types to our facility types
 const mapGoogleTypeToFacilityType = (types: string[]): FacilityType => {
+  // Check for specific types first (most specific to least specific)
   if (types.includes('hospital')) return 'hospital';
-  if (types.includes('pharmacy')) return 'pharmacy';
-  if (types.includes('dentist')) return 'clinic';
-  if (types.includes('physiotherapist')) return 'clinic';
-  if (types.includes('doctor')) return 'clinic';
-  if (types.includes('health')) return 'urgent_care';
+  if (types.includes('pharmacy') || types.includes('drugstore')) return 'pharmacy';
+  if (types.includes('emergency_room') || types.includes('urgent_care')) return 'urgent_care';
+  
+  // Check for clinic-related types
+  if (types.includes('dentist') || types.includes('dental_clinic')) return 'clinic';
+  if (types.includes('physiotherapist') || types.includes('physical_therapy')) return 'clinic';
+  if (types.includes('doctor') || types.includes('medical_clinic')) return 'clinic';
+  if (types.includes('veterinary_care')) return 'other';
+  
+  // Check for general health types
+  if (types.includes('health') || types.includes('medical_center')) return 'urgent_care';
+  
+  // Default based on common patterns
+  const typeString = types.join(' ').toLowerCase();
+  if (typeString.includes('hospital')) return 'hospital';
+  if (typeString.includes('pharmacy') || typeString.includes('drug')) return 'pharmacy';
+  if (typeString.includes('urgent') || typeString.includes('emergency')) return 'urgent_care';
+  
   return 'clinic'; // default
 };
 

@@ -3,10 +3,16 @@
 /* Google Maps InfoWindow Overrides */
 .gm-style .gm-style-iw-c {
   background-color: #ffffff !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3) !important;
   padding: 0 !important;
-  max-width: 320px !important;
+  max-width: 420px !important;
+  min-width: 300px !important;
+  width: auto !important;
+  transform: translateX(-50%) !important;
+  margin-left: 50% !important;
+  z-index: 10000 !important;
+  position: relative !important;
 }
 
 .gm-style .gm-style-iw-d {
@@ -210,6 +216,7 @@
   margin-top: 1rem !important;
   padding-top: 0.75rem;
   border-top: 1px solid #e2e8f0;
+  justify-content: center;
 }
 
 .update-btn {
@@ -219,13 +226,15 @@
   background-color: #3b82f6 !important;
   color: white !important;
   border: none !important;
-  border-radius: 6px !important;
-  padding: 0.75rem 1rem !important;
-  font-size: 0.9rem !important;
-  font-weight: 500 !important;
+  border-radius: 8px !important;
+  padding: 0.875rem 1.25rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2) !important;
+  box-shadow: 0 3px 6px rgba(59, 130, 246, 0.3) !important;
+  min-width: 140px !important;
+  justify-content: center !important;
 }
 
 .update-btn:hover {

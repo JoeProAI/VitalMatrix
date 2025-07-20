@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Circle } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Circle, Autocomplete } from '@react-google-maps/api';
 import { 
   Map, 
   Star, 
@@ -28,7 +28,8 @@ import {
   getNearbyFacilities,
   addFacility,
   calculateWaitTimeFromReviews,
-  updateFacilityWaitTimesFromReviews 
+  updateFacilityWaitTimesFromReviews,
+  calculateDecayedWaitTime
 } from '../firebase/communityPulseService';
 import { searchHealthcareFacilities } from '../services/googlePlacesService';
 import { HealthcareFacility, FacilityReview, MapPosition, CrowdingLevelColors } from '../types/communityPulse';
@@ -74,6 +75,9 @@ if (!googleMapsApiKey) {
   console.error('Expected environment variable: VITE_GOOGLE_MAPS_API_KEY');
 }
 
+// Static libraries array to prevent performance warnings
+const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
+
 const CommunityPulse: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -81,7 +85,7 @@ const CommunityPulse: React.FC = () => {
   const [selectedFacility, setSelectedFacility] = useState<HealthcareFacility | null>(null);
   const [reviews, setReviews] = useState<FacilityReview[]>([]);
   const [mapPosition, setMapPosition] = useState<MapPosition>(center);
-  const [searchRadius, setSearchRadius] = useState<number>(5); // km
+  const [searchRadius, setSearchRadius] = useState<number>(10); // km - increased for more results
   const [isAddingReview, setIsAddingReview] = useState<boolean>(false);
   const [reviewForm, setReviewForm] = useState({
     rating: 5,
@@ -94,12 +98,21 @@ const CommunityPulse: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [activeView, setActiveView] = useState<'map' | 'reviews' | 'times'>('map');
+  const [facilityFilters, setFacilityFilters] = useState({
+    hospital: true,
+    pharmacy: true,
+    clinic: true,
+    urgent_care: true,
+    other: true
+  });
   const mapRef = useRef<google.maps.Map | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   // Load Google Maps API (only if key is available)
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: googleMapsApiKey || '',
+    libraries: GOOGLE_MAPS_LIBRARIES,
     // Prevent loading if no API key
     preventGoogleFontsLoading: true
   });
@@ -111,197 +124,126 @@ const CommunityPulse: React.FC = () => {
     }
   }, [googleMapsApiKey]);
 
-  // Load real healthcare facilities from Google Places API
+  // Initial loading when component mounts
+  useEffect(() => {
+    if (googleMapsApiKey && isLoaded) {
+      console.log('🚀 Component mounted, starting initial facility loading...');
+      // Try to get user location first, fallback to NYC
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const pos = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            console.log('📍 Got user location:', pos);
+            setMapPosition(pos);
+            loadRealFacilities(pos, searchRadius * 1000);
+          },
+          (error) => {
+            console.log('⚠️ Location access failed, using NYC default');
+            setMapPosition(center);
+            loadRealFacilities(center, searchRadius * 1000);
+          },
+          { timeout: 5000 }
+        );
+      } else {
+        console.log('🗺️ Geolocation not supported, using NYC default');
+        setMapPosition(center);
+        loadRealFacilities(center, searchRadius * 1000);
+      }
+    }
+  }, [googleMapsApiKey, isLoaded, searchRadius]);
+
+  // Load real healthcare facilities from Google Places API with caching
   const loadRealFacilities = useCallback(async (position: MapPosition, radius: number = 5000) => {
     try {
+      console.log('🔄 Loading facilities with optimized performance...');
       setLoading(true);
       setError('');
       
-      // Search for different types of healthcare facilities
-      const hospitalPromise = searchHealthcareFacilities(position.lat, position.lng, radius, 'hospital');
-      const pharmacyPromise = searchHealthcareFacilities(position.lat, position.lng, radius, 'pharmacy');
-      const clinicPromise = searchHealthcareFacilities(position.lat, position.lng, radius, 'doctor');
+      // Check cache first to avoid unnecessary API calls
+      const cacheKey = `facilities_${position.lat.toFixed(3)}_${position.lng.toFixed(3)}_${radius}`;
+      const cachedData = sessionStorage.getItem(cacheKey);
+      const cacheTime = sessionStorage.getItem(`${cacheKey}_time`);
       
-      const [hospitals, pharmacies, clinics] = await Promise.all([
-        hospitalPromise,
-        pharmacyPromise,
-        clinicPromise
+      // Use cached data if less than 5 minutes old
+      if (cachedData && cacheTime && (Date.now() - parseInt(cacheTime)) < 300000) {
+        console.log('📦 Using cached facility data for faster loading');
+        const cachedFacilities = JSON.parse(cachedData);
+        setFacilities(cachedFacilities);
+        setLoading(false);
+        console.log(`✅ Loaded ${cachedFacilities.length} cached facilities`);
+        return;
+      }
+      
+      // Optimized: Load facilities in batches to reduce initial load time
+      console.log('🚀 Fetching fresh facility data...');
+      
+      // Start with hospitals and urgent care (most critical)
+      const criticalFacilities = await Promise.all([
+        searchHealthcareFacilities(position.lat, position.lng, radius, 'hospital'),
+        searchHealthcareFacilities(position.lat, position.lng, radius, 'urgent_care')
       ]);
       
-      // Combine all facilities and remove duplicates
-      const allFacilities = [...hospitals, ...pharmacies, ...clinics];
-      const uniqueFacilities = allFacilities.filter((facility, index, self) => 
+      const criticalResults = [...criticalFacilities[0], ...criticalFacilities[1]];
+      const uniqueCritical = criticalResults.filter((facility, index, self) => 
         index === self.findIndex(f => f.googlePlaceId === facility.googlePlaceId)
       );
       
-      // Ensure facilities have Firebase IDs and get existing data
-      const facilitiesWithFirebaseData = await Promise.all(
-        uniqueFacilities.map(async (facility) => {
-          try {
-            // Check if facility already exists in Firebase by googlePlaceId
-            const existingFacilities = await getNearbyFacilities(position, radius / 1000);
-            const existingFacility = existingFacilities.find(f => 
-              f.googlePlaceId === facility.googlePlaceId
-            );
-            
-            if (existingFacility) {
-              // Use existing facility data with Firebase ID
-              const mergedFacility = {
-                ...facility,
-                id: existingFacility.id,
-                currentWaitTime: existingFacility.currentWaitTime || 0,
-                lastWaitTimeUpdate: existingFacility.lastWaitTimeUpdate,
-                averageRating: existingFacility.averageRating || 0,
-                ratingCount: existingFacility.ratingCount || 0,
-                crowdingLevel: existingFacility.crowdingLevel
-              };
-              
-              // Check and reset expired wait times
-              if (mergedFacility.currentWaitTime && mergedFacility.lastWaitTimeUpdate) {
-                const isExpired = checkWaitTimeExpiry(mergedFacility.lastWaitTimeUpdate, mergedFacility.currentWaitTime);
-                if (isExpired) {
-                  try {
-                    await resetExpiredWaitTime(mergedFacility.id!);
-                    console.log(`Reset expired wait time for ${mergedFacility.name}`);
-                    return {
-                      ...mergedFacility,
-                      currentWaitTime: 0,
-                      lastWaitTimeUpdate: new Date()
-                    };
-                  } catch (error) {
-                    console.error(`Failed to reset wait time for ${mergedFacility.name}:`, error);
-                  }
-                }
-              }
-              
-              return mergedFacility;
-            } else {
-              // New facility - add to Firebase to get an ID
-              try {
-                const facilityId = await addFacility(facility);
-                return {
-                  ...facility,
-                  id: facilityId,
-                  currentWaitTime: 0,
-                  averageRating: 0,
-                  ratingCount: 0
-                };
-              } catch (error) {
-                console.error(`Failed to add facility ${facility.name} to Firebase:`, error);
-                // Return facility without Firebase ID as fallback
-                return facility;
-              }
-            }
-          } catch (error) {
-            console.error(`Error processing facility ${facility.name}:`, error);
-            return facility;
-          }
-        })
-      );
+      // Display critical facilities immediately
+      const quickFacilities = uniqueCritical.map((facility) => ({
+        ...facility,
+        id: facility.googlePlaceId,
+        currentWaitTime: 0,
+        lastWaitTimeUpdate: new Date(),
+        crowdingLevel: 'moderate' as const,
+        averageRating: facility.rating || 0,
+        ratingCount: facility.userRatingsTotal || 0
+      }));
       
-      // Auto-generate realistic wait times for facilities without current data (only when authenticated)
-      if (currentUser) {
-        const facilitiesWithAutoWaitTimes = await Promise.all(
-          facilitiesWithFirebaseData.map(async (facility) => {
-            // Only add wait times if facility doesn't have recent data
-            const needsWaitTime = !facility.currentWaitTime || 
-                                 !facility.lastWaitTimeUpdate || 
-                                 (new Date().getTime() - new Date(facility.lastWaitTimeUpdate).getTime()) > 3600000; // 1 hour old
-            
-            if (needsWaitTime && facility.id) {
-              try {
-                // Generate realistic wait time based on facility type and current time
-                const currentHour = new Date().getHours();
-                const isWeekend = new Date().getDay() === 0 || new Date().getDay() === 6;
-                
-                let baseWaitTime;
-                let crowdingLevel: 'low' | 'moderate' | 'high';
-                
-                if (facility.name.toLowerCase().includes('emergency') || facility.name.toLowerCase().includes('er')) {
-                  baseWaitTime = isWeekend ? 90 : 75;
-                  if (currentHour >= 18 || currentHour <= 6) baseWaitTime += 30;
-                  crowdingLevel = baseWaitTime > 90 ? 'high' : 'moderate';
-                } else if (facility.name.toLowerCase().includes('urgent') || facility.name.toLowerCase().includes('clinic')) {
-                  baseWaitTime = isWeekend ? 45 : 35;
-                  if (currentHour >= 17 || currentHour <= 9) baseWaitTime += 15;
-                  crowdingLevel = baseWaitTime > 50 ? 'high' : baseWaitTime > 25 ? 'moderate' : 'low';
-                } else if (facility.name.toLowerCase().includes('pharmacy')) {
-                  baseWaitTime = isWeekend ? 15 : 10;
-                  if (currentHour >= 17 || currentHour <= 9) baseWaitTime += 5;
-                  crowdingLevel = baseWaitTime > 20 ? 'moderate' : 'low';
-                } else {
-                  baseWaitTime = isWeekend ? 30 : 25;
-                  if (currentHour >= 16 || currentHour <= 10) baseWaitTime += 10;
-                  crowdingLevel = baseWaitTime > 40 ? 'high' : baseWaitTime > 20 ? 'moderate' : 'low';
-                }
-                
-                const randomVariation = Math.floor(Math.random() * 20) - 10;
-                const finalWaitTime = Math.max(5, baseWaitTime + randomVariation);
-                
-                // Update the facility in Firebase with realistic wait time
-                await updateWaitTime(facility.id, finalWaitTime, currentUser.uid, crowdingLevel);
-                
-                return {
-                  ...facility,
-                  currentWaitTime: finalWaitTime,
-                  crowdingLevel: crowdingLevel,
-                  lastWaitTimeUpdate: new Date()
-                };
-              } catch (error) {
-                console.log(`Could not auto-generate wait time for ${facility.name}:`, error);
-                return facility;
-              }
-            }
-            return facility;
-          })
-        );
-        
-        // Update wait times based on recent reviews
+      setFacilities(quickFacilities);
+      console.log(`⚡ Quick loaded ${quickFacilities.length} critical facilities`);
+      
+      // Load remaining facilities in background
+      setTimeout(async () => {
         try {
-          console.log('🔄 Updating wait times from recent reviews...');
+          const [pharmacies, clinics] = await Promise.all([
+            searchHealthcareFacilities(position.lat, position.lng, radius, 'pharmacy'),
+            searchHealthcareFacilities(position.lat, position.lng, radius, 'doctor')
+          ]);
           
-          // Update each facility's wait time based on reviews
-          const updatedFacilities = await Promise.all(
-            facilitiesWithAutoWaitTimes.map(async (facility) => {
-              if (facility.id) {
-                try {
-                  // Update the facility in Firebase with review-based wait time
-                  await updateFacilityWaitTimesFromReviews(facility.id);
-                  
-                  // Get the updated wait time
-                  const reviewBasedWaitTime = await calculateWaitTimeFromReviews(facility.id);
-                  if (reviewBasedWaitTime !== null && reviewBasedWaitTime > 0) {
-                    console.log(`📊 Updated ${facility.name} wait time from reviews: ${reviewBasedWaitTime} min`);
-                    return {
-                      ...facility,
-                      currentWaitTime: reviewBasedWaitTime,
-                      lastWaitTimeUpdate: new Date()
-                    };
-                  }
-                } catch (error) {
-                  console.log(`Could not calculate review-based wait time for ${facility.name}:`, error);
-                }
-              }
-              return facility;
-            })
+          const allFacilities = [...criticalResults, ...pharmacies, ...clinics];
+          const uniqueFacilities = allFacilities.filter((facility, index, self) => 
+            index === self.findIndex(f => f.googlePlaceId === facility.googlePlaceId)
           );
           
-          setFacilities(updatedFacilities);
-          console.log(`✅ Loaded ${updatedFacilities.length} real healthcare facilities with review-based wait times`);
-        } catch (error) {
-          console.error('Error updating wait times from reviews:', error);
-          setFacilities(facilitiesWithAutoWaitTimes);
-          console.log(`Loaded ${facilitiesWithAutoWaitTimes.length} real healthcare facilities with auto-generated wait times`);
+          const completeFacilities = uniqueFacilities.map((facility) => ({
+            ...facility,
+            id: facility.googlePlaceId,
+            currentWaitTime: 0,
+            lastWaitTimeUpdate: new Date(),
+            crowdingLevel: 'moderate' as const,
+            averageRating: facility.rating || 0,
+            ratingCount: facility.userRatingsTotal || 0
+          }));
+          
+          // Cache the complete results
+          sessionStorage.setItem(cacheKey, JSON.stringify(completeFacilities));
+          sessionStorage.setItem(`${cacheKey}_time`, Date.now().toString());
+          
+          setFacilities(completeFacilities);
+          console.log(`✅ Complete loaded ${completeFacilities.length} total facilities`);
+        } catch (bgError) {
+          console.warn('Background facility loading failed:', bgError);
         }
-      } else {
-        setFacilities(facilitiesWithFirebaseData);
-        console.log(`Loaded ${facilitiesWithFirebaseData.length} real healthcare facilities:`, facilitiesWithFirebaseData.map((f: HealthcareFacility) => f.name));
-      }
-    } catch (err) {
-      console.error('Error loading real facilities:', err);
-      setError('Failed to load healthcare facilities. Please try again.');
+      }, 100);
+    } catch (error) {
+      console.error('Failed to load facilities:', error);
+      setError('Failed to load nearby facilities. Please try again.');
       setFacilities([]);
     } finally {
+      console.log('✅ Finished loading facilities, setting loading to false');
       setLoading(false);
     }
   }, []);
@@ -329,35 +271,87 @@ const CommunityPulse: React.FC = () => {
     }
   }, [loadRealFacilities]);
 
-  // Get user's current location
+  // Get user's current location with better error handling
   const getUserLocation = useCallback(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const pos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setMapPosition(pos);
-          loadRealFacilities(pos, searchRadius * 1000); // Convert km to meters
-        },
-        () => {
-          setError('Error: Location service failed. Using default location.');
-          loadRealFacilities(center, searchRadius * 1000); // Convert km to meters
-        }
-      );
-    } else {
+    if (!navigator.geolocation) {
       setError('Error: Your browser doesn\'t support geolocation.');
-      loadRealFacilities(center, searchRadius * 1000); // Convert km to meters
+      setMapPosition(center);
+      loadRealFacilities(center, searchRadius * 1000);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    
+    const options = {
+      enableHighAccuracy: false, // Faster but less accurate
+      timeout: 10000, // 10 second timeout
+      maximumAge: 300000 // Accept 5-minute old cached location
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const pos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        console.log('📍 Got user location:', pos);
+        setMapPosition(pos);
+        loadRealFacilities(pos, searchRadius * 1000);
+      },
+      (error) => {
+        console.error('Location error:', error);
+        let errorMessage = 'Location access failed. Using default location.';
+        
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Using default location.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location unavailable. Using default location.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out. Using default location.';
+            break;
+        }
+        
+        setError(errorMessage);
+        setMapPosition(center);
+        loadRealFacilities(center, searchRadius * 1000);
+      },
+      options
+    );
+  }, [loadRealFacilities, searchRadius]);
+
+  // Handle address selection from autocomplete
+  const handleAddressSelect = useCallback(() => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      if (place.geometry && place.geometry.location) {
+        const newPos = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        console.log('📍 Address selected:', place.formatted_address, newPos);
+        setMapPosition(newPos);
+        loadRealFacilities(newPos, searchRadius * 1000);
+        setError('');
+      }
     }
   }, [loadRealFacilities, searchRadius]);
 
-  // Load nearby real facilities when component mounts
+  // Real-time wait time updates - refresh every 5 minutes for performance
   useEffect(() => {
-    if (isLoaded) {
-      loadNearbyFacilities();
-    }
-  }, [isLoaded, loadNearbyFacilities]);
+    const interval = setInterval(() => {
+      // Force re-render to update decayed wait times
+      setFacilities(prev => [...prev]);
+      if (selectedFacility) {
+        setSelectedFacility(prev => prev ? {...prev} : null);
+      }
+    }, 300000); // Update every 5 minutes for better performance
+
+    return () => clearInterval(interval);
+  }, [selectedFacility]);
 
   // Load facility details and reviews when a facility is selected
   useEffect(() => {
@@ -388,8 +382,9 @@ const CommunityPulse: React.FC = () => {
           lng: newCenter.lng()
         };
         setMapPosition(newPos);
-        // Load facilities for new map position
-        loadRealFacilities(newPos, searchRadius * 1000);
+        // DISABLED: Don't auto-reload facilities when user drags map
+        // This prevents unwanted recentering when user is exploring
+        // loadRealFacilities(newPos, searchRadius * 1000);
       }
     }
   };
@@ -539,8 +534,41 @@ const CommunityPulse: React.FC = () => {
     }
   };
 
-  // Format wait time display
-  const formatWaitTime = (minutes?: number): string => {
+  // Get real-time decayed wait time for a facility
+  const getRealTimeWaitTime = (facility: HealthcareFacility): number => {
+    if (!facility.currentWaitTime || !facility.lastWaitTimeUpdate) {
+      return 0;
+    }
+    
+    // Convert Firebase timestamp to Date if needed
+    let lastUpdate: Date;
+    if (facility.lastWaitTimeUpdate instanceof Date) {
+      lastUpdate = facility.lastWaitTimeUpdate;
+    } else if (facility.lastWaitTimeUpdate?.toDate) {
+      lastUpdate = facility.lastWaitTimeUpdate.toDate();
+    } else {
+      return facility.currentWaitTime; // Fallback to original time
+    }
+    
+    return calculateDecayedWaitTime(facility.currentWaitTime, lastUpdate);
+  };
+
+  // Format wait time display with real-time decay
+  const formatWaitTime = (facility?: HealthcareFacility): string => {
+    if (!facility) return 'Unknown';
+    
+    const realTimeWaitTime = getRealTimeWaitTime(facility);
+    
+    if (realTimeWaitTime === 0) return 'No wait';
+    if (realTimeWaitTime < 60) return `${Math.round(realTimeWaitTime)} min`;
+    
+    const hours = Math.floor(realTimeWaitTime / 60);
+    const mins = Math.round(realTimeWaitTime % 60);
+    return `${hours}h ${mins}m`;
+  };
+
+  // Format review wait time (historical, no decay)
+  const formatReviewWaitTime = (minutes?: number): string => {
     if (!minutes && minutes !== 0) return 'Unknown';
     if (minutes < 60) return `${Math.round(minutes)} min`;
     const hours = Math.floor(minutes / 60);
@@ -552,19 +580,37 @@ const CommunityPulse: React.FC = () => {
   const getTimeAgo = (date?: Date | any): string => {
     if (!date) return 'Unknown';
     
-    const now = new Date();
-    const updateTime = date instanceof Date ? date : date.toDate();
-    const diffMs = now.getTime() - updateTime.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    try {
+      const now = new Date();
+      let updateTime: Date;
+      
+      if (date instanceof Date) {
+        updateTime = date;
+      } else if (date && typeof date.toDate === 'function') {
+        updateTime = date.toDate();
+      } else if (date && date.seconds) {
+        // Firestore timestamp with seconds property
+        updateTime = new Date(date.seconds * 1000);
+      } else {
+        // Try to parse as date string or number
+        updateTime = new Date(date);
+      }
+      
+      const diffMs = now.getTime() - updateTime.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins} min ago`;
+      
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+      
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } catch (error) {
+      console.warn('Error parsing date:', date, error);
+      return 'Unknown';
+    }
   };
 
   // Get facility marker color based on type
@@ -723,6 +769,44 @@ const CommunityPulse: React.FC = () => {
             <span>Use My Location</span>
           </button>
         </div>
+        
+        {/* Address Search */}
+        <div className="control-item">
+          {isLoaded && (
+            <Autocomplete
+              onLoad={(autocomplete) => {
+                autocompleteRef.current = autocomplete;
+              }}
+              onPlaceChanged={handleAddressSelect}
+              options={{
+                types: ['address'],
+                componentRestrictions: { country: 'us' }
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Search address..."
+                style={{
+                  backgroundColor: '#1e293b',
+                  border: '2px solid #374151',
+                  borderRadius: '8px',
+                  color: '#e2e8f0',
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.9rem',
+                  width: '200px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#374151';
+                }}
+              />
+            </Autocomplete>
+          )}
+        </div>
         <div className="map-info" style={{
           backgroundColor: '#1e293b',
           padding: '1rem',
@@ -742,7 +826,10 @@ const CommunityPulse: React.FC = () => {
           fontSize: '0.9rem',
           fontWeight: '500'
         }}>
-          <span>📍 {facilities.length} facilities loaded</span>
+          <span>📍 {facilities.filter(f => {
+            const facilityType = f.type as keyof typeof facilityFilters;
+            return facilityFilters[facilityType] !== false;
+          }).length} of {facilities.length} facilities shown</span>
           {facilities.length === 0 && (
             <button 
               onClick={() => loadNearbyFacilities()}
@@ -761,6 +848,39 @@ const CommunityPulse: React.FC = () => {
             </button>
           )}
         </div>
+        
+        {/* Facility Filter Toggles */}
+        <div className="facility-filters" style={{
+          display: 'flex',
+          gap: '0.5rem',
+          flexWrap: 'wrap',
+          marginTop: '0.5rem'
+        }}>
+          {Object.entries(facilityFilters).map(([type, enabled]) => (
+            <button
+              key={type}
+              onClick={() => setFacilityFilters(prev => ({ ...prev, [type as keyof typeof prev]: !prev[type as keyof typeof prev] }))}
+              style={{
+                backgroundColor: enabled ? facilityTypeColors[type] || '#8b5cf6' : '#374151',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '0.25rem 0.5rem',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                opacity: enabled ? 1 : 0.5,
+                transition: 'all 0.2s'
+              }}
+            >
+              {type === 'urgent_care' ? '🚑 Urgent Care' : 
+               type === 'hospital' ? '🏥 Hospitals' :
+               type === 'pharmacy' ? '💊 Pharmacies' :
+               type === 'clinic' ? '🩺 Clinics' :
+               type === 'other' ? '🏢 Other' : type}
+            </button>
+          ))}
+        </div>
+        
         {error && (
           <div className="error-message">
             <AlertCircle size={18} />
@@ -829,18 +949,33 @@ const CommunityPulse: React.FC = () => {
             ]
           }}
           onClick={(event) => {
+            // Close popup when clicking on map
+            setSelectedFacility(null);
+            
             if (event.latLng) {
               const newPosition = {
                 lat: event.latLng.lat(),
                 lng: event.latLng.lng()
               };
               setMapPosition(newPosition);
-              loadRealFacilities(newPosition, searchRadius * 1000);
+              // Only load facilities if user clicks far from current position
+              const distance = Math.sqrt(
+                Math.pow(newPosition.lat - mapPosition.lat, 2) + 
+                Math.pow(newPosition.lng - mapPosition.lng, 2)
+              );
+              if (distance > 0.01) { // ~1km threshold
+                loadRealFacilities(newPosition, searchRadius * 1000);
+              }
             }
           }}
         >
-          {/* Display markers for each facility */}
-          {facilities.map((facility) => (
+          {/* Display markers for each facility (filtered by type) */}
+          {facilities
+            .filter(facility => {
+              const facilityType = facility.type as keyof typeof facilityFilters;
+              return facilityFilters[facilityType] !== false;
+            })
+            .map((facility) => (
             <Marker
               key={facility.id}
               position={{
@@ -889,8 +1024,17 @@ const CommunityPulse: React.FC = () => {
                 lng: selectedFacility.location.longitude
               }}
               onCloseClick={() => setSelectedFacility(null)}
+              options={{
+                pixelOffset: new window.google.maps.Size(0, -80),
+                maxWidth: 400,
+                disableAutoPan: true,
+                zIndex: 1000
+              }}
             >
-              <div className="facility-info-window">
+              <div 
+                className="facility-info-window"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <h3>{selectedFacility.name}</h3>
                 <p className="facility-type">
                   <span
@@ -909,7 +1053,7 @@ const CommunityPulse: React.FC = () => {
                   
                   <div className="metric">
                     <Clock3 size={16} />
-                    <span>Wait: {formatWaitTime(selectedFacility.currentWaitTime)}</span>
+                    <span>Wait: {formatWaitTime(selectedFacility)}</span>
                   </div>
                   
                   <div className="metric">
@@ -930,7 +1074,12 @@ const CommunityPulse: React.FC = () => {
                   <div className="action-buttons">
                     <button 
                       className="update-btn"
-                      onClick={() => setIsAddingReview(prev => !prev)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsAddingReview(prev => !prev);
+                      }}
+                      type="button"
                     >
                       <FileEdit size={16} />
                       {isAddingReview ? 'Cancel' : 'Add Review'}
@@ -1073,7 +1222,7 @@ const CommunityPulse: React.FC = () => {
                   {review.waitTime !== undefined && (
                     <div className="metric">
                       <Clock3 size={14} />
-                      <span>Wait: {formatWaitTime(review.waitTime)}</span>
+                      <span>Wait: {formatReviewWaitTime(review.waitTime)}</span>
                     </div>
                   )}
                   

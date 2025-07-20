@@ -322,10 +322,10 @@ const calculateHealthScore = (profile: UserProfile | null, visits: HealthcareVis
   // Simple scoring algorithm - can be enhanced
   let score = 50; // Base score
   
-  if (profile?.healthProfile.age && profile.healthProfile.age < 65) score += 10;
+  if (profile?.healthProfile?.age && profile.healthProfile.age < 65) score += 10;
   if (visits.length > 0 && visits[0].rating && visits[0].rating >= 4) score += 15;
   if (nutrition.length >= 7) score += 20; // Regular nutrition tracking
-  if (profile?.stats.streakDays && profile.stats.streakDays > 7) score += 5;
+  if (profile?.stats?.streakDays && profile.stats.streakDays > 7) score += 5;
   
   return Math.min(100, Math.max(0, score));
 };

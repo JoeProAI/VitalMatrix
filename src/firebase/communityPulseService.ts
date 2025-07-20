@@ -26,8 +26,16 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
  */
 export const addFacility = async (facility: HealthcareFacility): Promise<string> => {
   try {
-    const docRef = await addDoc(facilitiesCollection, {
+    // Validate required fields to prevent undefined values
+    const sanitizedFacility = {
       ...facility,
+      address: facility.address || 'Address not available',
+      phone: facility.phone || 'Phone not available',
+      website: facility.website || '',
+      googleRating: facility.googleRating || 0,
+      googleReviewCount: facility.googleReviewCount || 0,
+      photos: facility.photos || [],
+      hours: facility.hours || {},
       // Store location as GeoPoint for future geospatial queries
       location: {
         ...facility.location,
@@ -41,7 +49,9 @@ export const addFacility = async (facility: HealthcareFacility): Promise<string>
       ratingCount: 0,
       ratingSum: 0,
       averageRating: 0
-    });
+    };
+    
+    const docRef = await addDoc(facilitiesCollection, sanitizedFacility);
     return docRef.id;
   } catch (error) {
     console.error('Error adding facility:', error);
@@ -261,7 +271,25 @@ export const resetExpiredWaitTime = async (facilityId: string): Promise<void> =>
 };
 
 /**
- * Calculate average wait time from recent reviews
+ * Calculate wait time with automatic decay over time
+ * Wait times decay exponentially: 50% every 30 minutes
+ */
+export const calculateDecayedWaitTime = (initialWaitTime: number, lastUpdateTime: Date): number => {
+  const now = new Date();
+  const minutesElapsed = (now.getTime() - lastUpdateTime.getTime()) / (1000 * 60);
+  
+  // Exponential decay: 50% every 30 minutes
+  const halfLife = 30; // minutes
+  const decayFactor = Math.pow(0.5, minutesElapsed / halfLife);
+  
+  const decayedTime = initialWaitTime * decayFactor;
+  
+  // Round to nearest minute, minimum 0
+  return Math.max(0, Math.round(decayedTime));
+};
+
+/**
+ * Calculate average wait time from recent reviews with decay
  */
 export const calculateWaitTimeFromReviews = async (facilityId: string): Promise<number> => {
   try {
@@ -292,24 +320,28 @@ export const calculateWaitTimeFromReviews = async (facilityId: string): Promise<
       return 0; // No wait time data available
     }
     
-    // Calculate weighted average - more recent reviews have higher weight
+    // Calculate weighted average with time decay
     let totalWeight = 0;
     let weightedSum = 0;
     const now = new Date();
     
     reviews.forEach((review, index) => {
-      const hoursAgo = (now.getTime() - review.timestamp.getTime()) / (1000 * 60 * 60);
-      // Weight decreases with age: recent reviews (0-2 hours) get full weight,
-      // older reviews get progressively less weight
-      const ageWeight = Math.max(0.1, 1 - (hoursAgo / 24)); // Minimum 10% weight
-      const positionWeight = 1 / (index + 1); // First review gets full weight, others decrease
-      const finalWeight = ageWeight * positionWeight;
+      // Apply exponential decay to the wait time
+      const decayedWaitTime = calculateDecayedWaitTime(review.waitTime!, review.timestamp);
       
-      weightedSum += review.waitTime! * finalWeight;
-      totalWeight += finalWeight;
+      if (decayedWaitTime > 0) {
+        const hoursAgo = (now.getTime() - review.timestamp.getTime()) / (1000 * 60 * 60);
+        // Weight decreases with age: recent reviews (0-2 hours) get full weight
+        const ageWeight = Math.max(0.1, 1 - (hoursAgo / 24)); // Minimum 10% weight
+        const positionWeight = 1 / (index + 1); // First review gets full weight, others decrease
+        const finalWeight = ageWeight * positionWeight;
+        
+        weightedSum += decayedWaitTime * finalWeight;
+        totalWeight += finalWeight;
+      }
     });
     
-    return Math.round(weightedSum / totalWeight);
+    return totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 0;
   } catch (error) {
     console.error('Error calculating wait time from reviews:', error);
     return 0;

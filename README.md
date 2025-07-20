@@ -1,11 +1,12 @@
-# 🏥💊 VitalMatrix: The Future of Healthcare & Nutrition
+# 🏥 VitalMatrix - Healthcare Intelligence Platform
 
-**The world's first unified platform combining real-time healthcare insights with AI-powered nutrition analysis.**
+<div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-18.0+-blue.svg)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
-[![Firebase](https://img.shields.io/badge/Firebase-10.0+-orange.svg)](https://firebase.google.com/)
+![VitalMatrix](https://img.shields.io/badge/VitalMatrix-Healthcare%20Intelligence-blue?style=for-the-badge)
+![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript)
+![Firebase](https://img.shields.io/badge/Firebase-9.0-FFCA28?style=for-the-badge&logo=firebase)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel)
 
 ---
 

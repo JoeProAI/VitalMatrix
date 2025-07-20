@@ -51,10 +51,52 @@ const NutriLens: React.FC = () => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [allergyWarnings, setAllergyWarnings] = useState<string[]>([]);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper function to check for allergy warnings
+  const checkForAllergyWarnings = (scanResult: NutritionScanResult, userAllergies: string[]): string[] => {
+    const warnings: string[] = [];
+    const lowerUserAllergies = userAllergies.map(allergy => allergy.toLowerCase().trim());
+    
+    // Check detected allergens from scan result
+    if (scanResult.allergens && scanResult.allergens.length > 0) {
+      scanResult.allergens.forEach(allergen => {
+        const lowerAllergen = allergen.toLowerCase().trim();
+        if (lowerUserAllergies.some(userAllergy => 
+          lowerAllergen.includes(userAllergy) || userAllergy.includes(lowerAllergen)
+        )) {
+          warnings.push(allergen);
+        }
+      });
+    }
+    
+    // Check food item name for allergen keywords
+    if (scanResult.foodItem) {
+      const foodName = scanResult.foodItem.toLowerCase();
+      lowerUserAllergies.forEach(userAllergy => {
+        if (foodName.includes(userAllergy)) {
+          warnings.push(userAllergy);
+        }
+      });
+    }
+    
+    // Check brand name for allergen indicators
+    if (scanResult.brand) {
+      const brandName = scanResult.brand.toLowerCase();
+      lowerUserAllergies.forEach(userAllergy => {
+        if (brandName.includes(userAllergy)) {
+          warnings.push(userAllergy);
+        }
+      });
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(warnings)];
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -111,14 +153,34 @@ const NutriLens: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      setAllergyWarnings([]); // Clear previous allergy warnings
       
-      const result = await scanBarcode(barcodeInput.trim(), currentUser.uid);
+      let result = await scanBarcode(barcodeInput.trim(), currentUser.uid);
+      
+      // If barcode not found in database, inform user to use camera for AI analysis
+      if (!result) {
+        console.log('📦 Manual barcode not in database...');
+        setError(`Barcode ${barcodeInput.trim()} not found in database. Please use the camera scanner to capture the product image for AI analysis.`);
+        return;
+      }
+      
       if (result) {
+        // Enhance manual barcode result with AI analysis for allergen detection
+        console.log('🧠 Enhancing manual barcode result with AI analysis...');
+        
+        // Check for allergy warnings based on user profile
+        if (userProfile?.healthProfile?.allergies && userProfile.healthProfile.allergies.length > 0) {
+          const warnings = checkForAllergyWarnings(result, userProfile.healthProfile.allergies);
+          setAllergyWarnings(warnings);
+          
+          if (warnings.length > 0) {
+            console.log('🚨 MANUAL BARCODE ALLERGY WARNINGS DETECTED:', warnings);
+          }
+        }
+        
         setScanResult(result);
         setBarcodeInput('');
         await loadUserData(); // Refresh insights
-      } else {
-        setError('Product not found. Try a different barcode or use camera scan.');
       }
     } catch (error) {
       console.error('Error scanning barcode:', error);
@@ -132,6 +194,7 @@ const NutriLens: React.FC = () => {
     try {
       setIsScanning(true);
       setError('');
+      setAllergyWarnings([]); // Clear previous allergy warnings
       
       console.log('📹 Starting camera...');
       
@@ -266,6 +329,7 @@ const NutriLens: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      setAllergyWarnings([]); // Clear previous allergy warnings
       
       console.log('🎥 Video ready for scanning:', {
         readyState: video.readyState,
@@ -357,15 +421,65 @@ const NutriLens: React.FC = () => {
           stopAutoScanning();
           setLoading(true);
           
-          const result = await scanBarcode(detectedBarcode, currentUser.uid);
+          let result = await scanBarcode(detectedBarcode, currentUser.uid);
+          
+          // If barcode not found in database, use Grok AI to analyze the product
+          if (!result) {
+            console.log('🤖 Barcode not in database, using Grok AI to analyze product...');
+            
+            // Capture current video frame for AI analysis
+            const video = videoRef.current;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            if (video && ctx) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+              ctx.drawImage(video, 0, 0);
+              
+              // Compress image for AI analysis
+              const imageData = canvas.toDataURL('image/jpeg', 0.7);
+              console.log('📸 Captured product image for Grok AI analysis...');
+              
+              // Send to Grok AI with barcode context
+              const aiResult = await analyzeImageWithAI(imageData);
+              if (aiResult) {
+                // Add barcode to the AI result
+                result = {
+                  ...aiResult,
+                  barcode: detectedBarcode,
+                  scanMethod: 'barcode',
+                  aiInsights: {
+                    ...aiResult.aiInsights,
+                    personalizedTips: [
+                      ...aiResult.aiInsights.personalizedTips,
+                      `Barcode: ${detectedBarcode}`,
+                      'Product analyzed using AI vision since barcode not in database'
+                    ]
+                  }
+                };
+                console.log('✨ Grok AI analysis complete for barcode:', detectedBarcode);
+              }
+            }
+          }
+          
           if (result) {
+            // Enhance barcode result with AI analysis for allergen detection
+            console.log('🧠 Enhancing auto-scanned barcode result with AI analysis...');
+            
+            // Check for allergy warnings based on user profile
+            if (userProfile?.healthProfile?.allergies && userProfile.healthProfile.allergies.length > 0) {
+              const warnings = checkForAllergyWarnings(result, userProfile.healthProfile.allergies);
+              setAllergyWarnings(warnings);
+              
+              if (warnings.length > 0) {
+                console.log('🚨 AUTO-SCAN ALLERGY WARNINGS DETECTED:', warnings);
+              }
+            }
+            
             setScanResult(result);
             stopCamera();
             await loadUserData();
-          } else {
-            setError('Product not found. The barcode was detected but no nutrition data is available.');
-            // Restart auto-scanning after a brief delay
-            setTimeout(() => startAutoScanning(), 2000);
           }
           setLoading(false);
         }
@@ -409,6 +523,7 @@ const NutriLens: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      setAllergyWarnings([]); // Clear previous allergy warnings
       
       console.log('🎥 Video ready for scanning:', {
         readyState: video.readyState,
@@ -423,13 +538,64 @@ const NutriLens: React.FC = () => {
         console.log('✅ Barcode detected:', detectedBarcode);
         
         // Use the detected barcode to get nutrition info
-        const result = await scanBarcode(detectedBarcode, currentUser.uid);
+        let result = await scanBarcode(detectedBarcode, currentUser.uid);
+        
+        // If barcode not found in database, use Grok AI to analyze the product
+        if (!result) {
+          console.log('🤖 Camera barcode not in database, using Grok AI to analyze product...');
+          
+          // Capture current video frame for AI analysis
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          if (video && ctx) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            // Compress image for AI analysis
+            const imageData = canvas.toDataURL('image/jpeg', 0.7);
+            console.log('📸 Captured product image for Grok AI analysis...');
+            
+            // Send to Grok AI with barcode context
+            const aiResult = await analyzeImageWithAI(imageData);
+            if (aiResult) {
+              // Add barcode to the AI result
+              result = {
+                ...aiResult,
+                barcode: detectedBarcode,
+                scanMethod: 'barcode',
+                aiInsights: {
+                  ...aiResult.aiInsights,
+                  personalizedTips: [
+                    ...aiResult.aiInsights.personalizedTips,
+                    `Barcode: ${detectedBarcode}`,
+                    'Product analyzed using AI vision since barcode not in database'
+                  ]
+                }
+              };
+              console.log('✨ Grok AI analysis complete for camera barcode:', detectedBarcode);
+            }
+          }
+        }
+        
         if (result) {
+          // Enhance barcode result with AI analysis for allergen detection
+          console.log('🧠 Enhancing barcode result with AI analysis...');
+          
+          // Check for allergy warnings based on user profile
+          if (userProfile?.healthProfile?.allergies && userProfile.healthProfile.allergies.length > 0) {
+            const warnings = checkForAllergyWarnings(result, userProfile.healthProfile.allergies);
+            setAllergyWarnings(warnings);
+            
+            if (warnings.length > 0) {
+              console.log('🚨 ALLERGY WARNINGS DETECTED:', warnings);
+            }
+          }
+          
           setScanResult(result);
           stopCamera();
           await loadUserData();
-        } else {
-          setError(`Product not found for barcode: ${detectedBarcode}. The barcode was detected but no nutrition data is available.`);
         }
       } else {
         setError('No barcode detected. Please ensure the barcode is:\n• Clearly visible and well-lit\n• Within the red target area\n• Not blurry or distorted\n• A supported format (UPC, EAN, QR, etc.)');
@@ -521,6 +687,7 @@ const NutriLens: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      setAllergyWarnings([]); // Clear previous allergy warnings
       
       console.log('🤖 Starting Grok AI analysis...');
       
@@ -538,59 +705,185 @@ const NutriLens: React.FC = () => {
       
       const result = await response.json();
       console.log('🎯 Grok AI analysis result:', result);
+      console.log('📊 Raw result keys:', Object.keys(result));
+      console.log('🔍 Result allergens:', result.allergens);
+      console.log('🍽️ Result foodItems:', result.foodItems);
+      console.log('💡 Result healthBenefits:', result.healthBenefits);
+      console.log('⚠️ Result concerns:', result.concerns);
+      console.log('💭 Result personalizedTips:', result.personalizedTips);
+      console.log('🏥 Result nutritionalData:', result.nutritionalData);
       
-      // Extract comprehensive allergen information
-      const primaryFood = result.foodItems?.[0] || {};
+      // 📊 COMPREHENSIVE GROK AI DATA EXTRACTION 📊
+      console.log('🔍 Extracting comprehensive Grok AI data...');
+      
+      // Extract all food items (could be multiple foods in one image)
+      const foodItems = result.foodItems || [];
+      const primaryFood = foodItems[0] || {};
       const nutritionalData = result.nutritionalData || {};
+      const nutritionalEstimate = nutritionalData.nutritionalEstimate || {};
       
-      // Combine allergens from all sources
-      const allergenList = [...(primaryFood.allergens || []), ...(nutritionalData.allergens || [])];
-      const allFoods = result.foodItems || [primaryFood];
-      const allAllergens = allFoods.reduce((acc: string[], food: any) => {
+      // Extract ALL allergens from multiple sources
+      const directAllergens = result.allergens || []; // Direct allergen array
+      const foodAllergens = foodItems.reduce((acc: string[], food: any) => {
         if (food.allergens && Array.isArray(food.allergens)) {
           acc.push(...food.allergens);
         }
         return acc;
-      }, allergenList);
+      }, []);
+      const nutritionAllergens = nutritionalData.allergens || [];
       
+      // Combine and deduplicate all allergens
+      const allAllergens = [...directAllergens, ...foodAllergens, ...nutritionAllergens];
       const uniqueAllergens = [...new Set(allAllergens)]
         .filter((allergen: any) => allergen && typeof allergen === 'string' && allergen.length > 0)
         .map((allergen: any) => (allergen as string).toLowerCase().trim());
       
-      // Create comprehensive scan result
+      console.log('🧠 Extracted allergens:', uniqueAllergens);
+      console.log('🍽️ Food items found:', foodItems.length);
+      
+      // Calculate comprehensive health score from multiple factors
+      const calculateHealthScore = () => {
+        let score = 70; // Base score
+        
+        // Factor in calories (lower is better for most foods)
+        const calories = nutritionalEstimate.calories || nutritionalData.calories || 0;
+        if (calories > 400) score -= 10;
+        if (calories > 600) score -= 10;
+        if (calories > 800) score -= 15;
+        
+        // Factor in allergen count
+        score -= Math.min(uniqueAllergens.length * 3, 20);
+        
+        // Factor in warnings
+        const warnings = nutritionalData.warnings || [];
+        score -= Math.min(warnings.length * 5, 25);
+        
+        return Math.max(Math.min(score, 100), 0);
+      };
+      
+      const healthScore = calculateHealthScore();
+      const healthGrade = healthScore >= 90 ? 'A+' : 
+                         healthScore >= 85 ? 'A' :
+                         healthScore >= 80 ? 'B+' :
+                         healthScore >= 75 ? 'B' :
+                         healthScore >= 70 ? 'C+' :
+                         healthScore >= 65 ? 'C' :
+                         healthScore >= 60 ? 'D+' :
+                         healthScore >= 55 ? 'D' : 'F';
+      
+      // Create comprehensive scan result with ALL Grok AI data
       const scanResult: NutritionScanResult = {
-        id: Date.now().toString(),
-        timestamp: new Date(),
         userId: currentUser?.uid || '',
-        productName: result.foodItems?.length > 1 
-          ? `${primaryFood.name} + ${result.foodItems.length - 1} other items`
-          : primaryFood.name || 'Food Item',
+        timestamp: new Date(),
+        scanMethod: 'ai_vision',
+        confidence: result.confidence || 0.8,
+        
+        // Food identification - handle multiple foods
+        foodItem: foodItems.length > 1 
+          ? `${primaryFood.name || 'Mixed Food Items'} + ${foodItems.length - 1} other items`
+          : primaryFood.name || foodItems.map((f: any) => f.name).join(', ') || 'Food Item',
         brand: primaryFood.brand || 'Unknown',
-        barcode: '',
-        nutritionPer100g: {
-          energy: nutritionalData.calories || 0,
-          protein: nutritionalData.protein || 0,
-          carbohydrates: nutritionalData.carbohydrates || 0,
-          fat: nutritionalData.fat || 0,
-          fiber: nutritionalData.fiber || 0,
-          sugar: nutritionalData.sugar || 0,
-          sodium: nutritionalData.sodium || 0,
+        category: primaryFood.category || 'Food',
+        servingSize: primaryFood.servingSize || '1 serving',
+        
+        // Comprehensive nutritional data from multiple sources
+        calories: nutritionalEstimate.calories || nutritionalData.calories || primaryFood.calories || 0,
+        macros: {
+          protein: nutritionalEstimate.protein || nutritionalData.protein || primaryFood.protein || 0,
+          carbs: nutritionalEstimate.carbs || nutritionalData.carbohydrates || nutritionalData.carbs || primaryFood.carbs || 0,
+          fat: nutritionalEstimate.fat || nutritionalData.fat || primaryFood.fat || 0,
+          fiber: nutritionalData.fiber || primaryFood.fiber || 0,
+          sugar: nutritionalData.sugar || primaryFood.sugar || 0,
+          sodium: nutritionalData.sodium || primaryFood.sodium || 0,
         },
+        
+        // Enhanced micronutrients if available
+        micronutrients: {
+          vitaminA: nutritionalData.vitaminA || primaryFood.vitaminA,
+          vitaminC: nutritionalData.vitaminC || primaryFood.vitaminC,
+          vitaminD: nutritionalData.vitaminD || primaryFood.vitaminD,
+          calcium: nutritionalData.calcium || primaryFood.calcium,
+          iron: nutritionalData.iron || primaryFood.iron,
+          potassium: nutritionalData.potassium || primaryFood.potassium,
+        },
+        
+        // Health analysis
+        healthScore: healthScore,
+        healthGrade: healthGrade as any,
+        
+        // Comprehensive warnings and alerts
         allergens: uniqueAllergens,
-        healthScore: nutritionalData.healthScore || 70,
-        healthGrade: nutritionalData.healthGrade || 'B',
+        warnings: [
+          ...(uniqueAllergens.length > 0 ? [`⚠️ ALLERGEN WARNING: Contains ${uniqueAllergens.join(', ')}`] : []),
+          ...(nutritionalData.warnings || []),
+          ...(result.warnings || [])
+        ],
+        dietaryFlags: [
+          ...(result.dietaryFlags || []),
+          ...(primaryFood.dietaryFlags || []),
+          ...(nutritionalData.dietaryFlags || [])
+        ],
+        
+        // Comprehensive AI insights from all sources
         aiInsights: {
-          benefits: result.healthBenefits || [],
-          concerns: result.healthConcerns || [],
-          tips: [
-            ...result.personalizedTips || [],
-            ...(uniqueAllergens.length > 0 ? [`⚠️ Check ingredients for: ${uniqueAllergens.join(', ')}`] : [])
+          healthBenefits: [
+            ...(result.healthBenefits || []),
+            ...(nutritionalData.healthInsights || []),
+            ...(primaryFood.benefits || [])
+          ],
+          concerns: [
+            ...(result.healthConcerns || []),
+            ...(result.concerns || []),
+            ...(nutritionalData.concerns || []),
+            ...(primaryFood.concerns || [])
+          ],
+          alternatives: [
+            ...(result.alternatives || []),
+            ...(nutritionalData.alternatives || []),
+            ...(primaryFood.alternatives || [])
+          ],
+          personalizedTips: [
+            ...(result.personalizedTips || []),
+            ...(nutritionalData.tips || []),
+            ...(primaryFood.tips || []),
+            `Analyzed ${foodItems.length} food item${foodItems.length > 1 ? 's' : ''} using AI vision`,
+            `Health score: ${healthScore}/100 (${healthGrade})`,
+            ...(uniqueAllergens.length > 0 ? [`⚠️ Contains ${uniqueAllergens.length} allergen${uniqueAllergens.length > 1 ? 's' : ''}: ${uniqueAllergens.join(', ')}`] : []),
+            `Nutritional estimate: ${nutritionalEstimate.calories || 'N/A'} cal, ${nutritionalEstimate.protein || 'N/A'}g protein`
           ]
         },
-        warnings: uniqueAllergens.length > 0 
-          ? [`⚠️ ALLERGEN WARNING: Contains ${uniqueAllergens.join(', ')}`]
-          : []
+        
+        // Store raw Grok AI data for future analysis
+        notes: JSON.stringify({
+          grokRawData: {
+            foodItems: foodItems,
+            nutritionalData: nutritionalData,
+            allergens: result.allergens,
+            timestamp: result.timestamp,
+            success: result.success
+          },
+          analysisMetadata: {
+            totalFoodItems: foodItems.length,
+            totalAllergens: uniqueAllergens.length,
+            confidenceScore: result.confidence || 0.8,
+            analysisTimestamp: new Date().toISOString()
+          }
+        })
       };
+      
+      console.log('✨ Comprehensive scan result created:', {
+        foodItems: foodItems.length,
+        allergens: uniqueAllergens.length,
+        healthScore: healthScore,
+        calories: scanResult.calories,
+        warnings: scanResult.warnings.length
+      });
+      
+      console.log('🤖 Final AI Insights in scanResult:');
+      console.log('  💪 Health Benefits:', scanResult.aiInsights.healthBenefits);
+      console.log('  ⚠️ Concerns:', scanResult.aiInsights.concerns);
+      console.log('  💡 Alternatives:', scanResult.aiInsights.alternatives);
+      console.log('  📝 Tips:', scanResult.aiInsights.personalizedTips);
       
       // Save to Firebase if user is authenticated
       if (currentUser) {
@@ -627,6 +920,7 @@ const NutriLens: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      setAllergyWarnings([]); // Clear previous allergy warnings
       
       const video = videoRef.current;
       const canvas = document.createElement('canvas');
@@ -661,6 +955,7 @@ const NutriLens: React.FC = () => {
     try {
       setLoading(true);
       setError('');
+      setAllergyWarnings([]); // Clear previous allergy warnings
       
       // Compress image aggressively before sending
       const compressedImageData = await compressImage(file, 600, 0.5);
@@ -1104,6 +1399,32 @@ const NutriLens: React.FC = () => {
                     <h4 className="font-medium text-red-400 mb-2">⚠️ Allergen Warning</h4>
                     <p className="text-sm text-gray-300">
                       Contains: {scanResult.allergens.join(', ')}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Personalized Allergy Warnings for Barcode Scans */}
+                {allergyWarnings.length > 0 && (
+                  <div className="mt-4 p-4 bg-red-600/20 border-2 border-red-500 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <AlertTriangle className="h-5 w-5 text-red-400 mr-2" />
+                      <h4 className="font-bold text-red-400">🚨 PERSONAL ALLERGY ALERT</h4>
+                    </div>
+                    <p className="text-sm text-red-300 mb-2">
+                      This product may contain allergens from your profile:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {allergyWarnings.map((allergen, index) => (
+                        <span 
+                          key={index}
+                          className="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-medium"
+                        >
+                          {allergen}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-red-300 mt-2">
+                      ⚠️ Please check the ingredient list carefully before consuming.
                     </p>
                   </div>
                 )}

@@ -16,8 +16,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signup, login } = useAuth();
+  const { signup, login, currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if user is already authenticated
+  useEffect(() => {
+    if (currentUser) {
+      console.log('🔄 User already authenticated, redirecting to dashboard');
+      navigate('/dashboard');
+    }
+  }, [currentUser, navigate]);
 
   // Force dark mode for auth pages
   useEffect(() => {
@@ -66,7 +74,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({ mode }) => {
       // Handle specific Firebase auth errors
       switch (error.code) {
         case 'auth/email-already-in-use':
-          setError('An account with this email already exists');
+          setError('An account with this email already exists. Please try logging in instead.');
+          // Auto-suggest switching to login mode
+          setTimeout(() => {
+            if (mode === 'signup') {
+              navigate('/login');
+            }
+          }, 3000);
           break;
         case 'auth/weak-password':
           setError('Password is too weak');

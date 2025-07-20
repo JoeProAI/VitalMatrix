@@ -41,7 +41,7 @@ const UserDashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [insights, setInsights] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'health' | 'nutrition' | 'insights'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'nutrition' | 'insights'>('overview');
 
   useEffect(() => {
     if (currentUser) {
@@ -232,27 +232,38 @@ const UserDashboard: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="bg-[#1e293b] border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-8">
-            {[
-              { id: 'overview', label: 'Overview', icon: TrendingUp },
-              { id: 'health', label: 'Health', icon: Heart },
-              { id: 'nutrition', label: 'Nutrition', icon: Utensils },
-              { id: 'insights', label: 'Insights', icon: Award },
-            ].map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id as any)}
-                className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === id
-                    ? 'border-[#3b82f6] text-[#3b82f6]'
-                    : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
-                }`}
-              >
-                <Icon className="h-4 w-4 mr-2" />
-                {label}
-              </button>
-            ))}
-          </nav>
+          <div className="flex space-x-1 bg-[#1e293b] rounded-lg p-1 mb-6">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
+                activeTab === 'overview'
+                  ? 'bg-[#3b82f6] text-white shadow-lg shadow-blue-500/20'
+                  : 'text-gray-400 hover:text-white hover:bg-[#233044]'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('nutrition')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
+                activeTab === 'nutrition'
+                  ? 'bg-[#3b82f6] text-white shadow-lg shadow-blue-500/20'
+                  : 'text-gray-400 hover:text-white hover:bg-[#233044]'
+              }`}
+            >
+              Nutrition
+            </button>
+            <button
+              onClick={() => setActiveTab('insights')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-300 ${
+                activeTab === 'insights'
+                  ? 'bg-[#3b82f6] text-white shadow-lg shadow-blue-500/20'
+                  : 'text-gray-400 hover:text-white hover:bg-[#233044]'
+              }`}
+            >
+              Insights
+            </button>
+          </div>
         </div>
       </div>
 
@@ -343,31 +354,7 @@ const UserDashboard: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'health' && (
-          <div className="space-y-6">
-            <div className="bg-[#1e293b] rounded-lg p-6">
-              <h3 className="text-lg font-semibold mb-4">Health Profile</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Age</label>
-                  <p className="text-white">{profile.healthProfile.age || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Gender</label>
-                  <p className="text-white">{profile.healthProfile.gender || 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Height</label>
-                  <p className="text-white">{profile.healthProfile.height ? `${profile.healthProfile.height} cm` : 'Not specified'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Weight</label>
-                  <p className="text-white">{profile.healthProfile.weight ? `${profile.healthProfile.weight} kg` : 'Not specified'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {activeTab === 'nutrition' && (
           <div className="space-y-6">
