@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "VitalMatrix",
+  "name": "🚀 VitalMatrix",
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg"
@@ -8,164 +8,92 @@
   "favicon": "/favicon.svg",
   "theme": "venus",
   "colors": {
-    "primary": "#3b82f6",
-    "light": "#60a5fa",
-    "dark": "#2563eb",
+    "primary": "#0ea5e9",
+    "light": "#38bdf8",
+    "dark": "#0284c7",
     "anchors": {
-      "from": "#2563eb",
-      "to": "#60a5fa"
+      "from": "#0ea5e9",
+      "to": "#38bdf8"
     }
   },
-  "api": {
-    "baseUrl": "https://vitalmatrix.dev/api",
-    "auth": {
-      "method": "bearer"
-    }
-  },
-  "topbarLinks": [
-    {
-      "name": "Support",
-      "url": "mailto:support@vitalmatrix.dev"
-    }
-  ],
   "topbarCtaButton": {
-    "name": "Try VitalMatrix",
-    "url": "https://vitalmatrix.dev/nutrilens"
+    "name": "🎯 Try Live Demo",
+    "url": "https://vitalmatrix-app.vercel.app"
   },
   "tabs": [
     {
-      "name": "API Reference",
-      "url": "api-reference"
+      "name": "🔥 Features",
+      "url": "features"
     },
     {
-      "name": "Changelog",
-      "url": "changelog"
+      "name": "⚡ API",
+      "url": "api"
     }
   ],
   "anchors": [
     {
-      "name": "Documentation",
-      "icon": "book-open",
-      "url": "introduction"
+      "name": "🚀 Live App",
+      "icon": "rocket",
+      "url": "https://vitalmatrix-app.vercel.app"
     },
     {
-      "name": "Community",
-      "icon": "users",
+      "name": "💬 Community",
+      "icon": "discord",
       "url": "https://discord.gg/vitalmatrix"
     },
     {
-      "name": "GitHub",
+      "name": "⭐ GitHub",
       "icon": "github",
-      "url": "https://github.com/vitalmatrix/vitalmatrix"
+      "url": "https://github.com/JoeProAI/VitalMatrix"
     }
   ],
   "navigation": [
     {
-      "group": "Getting Started",
+      "group": "🎯 Get Started",
       "pages": [
-        "index",
         "introduction",
         "quickstart",
-        "installation"
+        "demo"
       ]
     },
     {
-      "group": "Core Features",
+      "group": "🔥 Core Features",
       "pages": [
-        {
-          "group": "NutriLens",
-          "pages": [
-            "features/nutrilens/overview",
-            "features/nutrilens/usage",
-            "features/nutrilens/dark-mode",
-            "features/nutrilens/barcode-scanning",
-            "features/nutrilens/ai-analysis"
-          ]
-        },
-        {
-          "group": "Community Pulse",
-          "pages": [
-            "features/community-pulse/overview"
-          ]
-        },
-        {
-          "group": "Dashboard",
-          "pages": [
-            "features/dashboard/overview"
-          ]
-        },
-        {
-          "group": "Food Database",
-          "pages": [
-            "features/food-database/overview"
-          ]
-        }
+        "features/nutrilens",
+        "features/community-pulse",
+        "features/dashboard",
+        "features/ai-analysis"
       ]
     },
     {
-      "group": "Technical Documentation",
+      "group": "⚡ API Reference",
       "pages": [
-        "technical/architecture",
-        "technical/styling",
-        {
-          "group": "AI Integration",
-          "pages": [
-            "technical/ai-integration/grok",
-            "technical/ai-integration/modal",
-            "technical/ai-integration/image-processing"
-          ]
-        },
-        {
-          "group": "Development",
-          "pages": [
-            "technical/development/setup",
-            "technical/development/code-style",
-            "technical/development/typescript",
-            "technical/development/testing"
-          ]
-        },
-        {
-          "group": "Deployment",
-          "pages": [
-            "technical/deployment/environments",
-            "technical/deployment/vercel",
-            "technical/deployment/ci-cd"
-          ]
-        }
+        "api/authentication",
+        "api/nutrition",
+        "api/ai-analyze",
+        "api/community"
       ]
     },
     {
-      "group": "API Reference",
+      "group": "🛠️ Development",
       "pages": [
-        "api-reference/authentication",
-        "api-reference/nutrition-endpoints",
-        "api-reference/ai-analyze-food",
-        "api-reference/spoonacular-integration"
+        "dev/architecture",
+        "dev/setup",
+        "dev/deployment"
       ]
     },
     {
-      "group": "Troubleshooting",
+      "group": "🎉 Hackathon",
       "pages": [
-        "troubleshooting/camera-access",
-        "troubleshooting/barcode-scanning",
-        "troubleshooting/ai-analysis"
-      ]
-    },
-    {
-      "group": "Changelog",
-      "pages": [
-        "changelog"
+        "hackathon/demo",
+        "hackathon/features",
+        "hackathon/tech-stack"
       ]
     }
   ],
   "footerSocials": {
-    "github": "https://github.com/vitalmatrix/vitalmatrix",
-    "discord": "https://discord.gg/vitalmatrix"
-  },
-  "analytics": {
-    "ga4": {
-      "measurementId": "G-XXXXXXXXXX"
-    }
+    "github": "https://github.com/JoeProAI/VitalMatrix",
+    "twitter": "https://twitter.com/joeproai"
   },
   "feedback": {
     "suggestEdit": true,
