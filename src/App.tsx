@@ -810,15 +810,15 @@ const HomePageContent: React.FC = () => {
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-center">
               {[
-                { name: 'Daytona.io', description: 'Development Environment', status: 'Integrating' },
-                { name: 'Modal', description: 'AI Infrastructure', status: 'Active' },
-                { name: 'Bolt.new', description: 'Rapid Development', status: 'Active' },
-                { name: 'Vercel', description: 'Deployment Platform', status: 'Active' },
-                { name: 'Machine', description: 'Cloud Infrastructure', status: 'Active' },
-                { name: 'AI Mastery', description: 'AI Education', status: 'Partner' }
+                { name: 'Daytona.io', description: 'Development Environment', status: 'Integrating', url: 'https://daytona.io' },
+                { name: 'Modal', description: 'AI Infrastructure', status: 'Active', url: 'https://modal.com' },
+                { name: 'Bolt.new', description: 'Rapid Development', status: 'Active', url: 'https://bolt.new' },
+                { name: 'Vercel', description: 'Deployment Platform', status: 'Active', url: 'https://vercel.com' },
+                { name: 'Machine', description: 'Cloud Infrastructure', status: 'Active', url: 'https://machine.com' },
+                { name: 'AI Mastery', description: 'AI Education', status: 'Partner', url: 'https://aimastery.com' }
               ].map((sponsor, index) => (
-                <div key={index} className="group text-center">
-                  <div className="bg-white dark:bg-steel/10 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-steel/10 dark:border-mist/10 group-hover:border-ocean/30">
+                <a key={index} href={sponsor.url} target="_blank" rel="noopener noreferrer" className="group text-center block">
+                  <div className="bg-white dark:bg-steel/10 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-steel/10 dark:border-mist/10 group-hover:border-ocean/30 cursor-pointer transform group-hover:scale-105">
                     <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-ocean/20 to-coral/20 rounded-lg flex items-center justify-center">
                       <div className="w-6 h-6 bg-gradient-to-br from-ocean to-coral rounded opacity-80" />
                     </div>
@@ -832,7 +832,7 @@ const HomePageContent: React.FC = () => {
                       {sponsor.status}
                     </span>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
             
