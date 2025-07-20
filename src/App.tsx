@@ -790,7 +790,7 @@ const HomePageContent: React.FC = () => {
           <div className="max-w-7xl mx-auto px-6">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-display font-bold text-midnight dark:text-pearl mb-4">
-                Powered by Innovation Partners
+                Powered By
               </h2>
               <p className="text-steel dark:text-mist max-w-2xl mx-auto text-lg leading-relaxed">
                 VitalMatrix is made possible by these incredible technology partners who believe in transforming healthcare through AI.
@@ -808,7 +808,7 @@ const HomePageContent: React.FC = () => {
               </a>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-center">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6 items-center justify-items-center">
               {[
                 { name: 'Daytona.io', description: 'Development Environment', status: 'Integrating', url: 'https://daytona.io' },
                 { name: 'Modal', description: 'AI Infrastructure', status: 'Active', url: 'https://modal.com' },
