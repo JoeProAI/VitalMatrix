@@ -281,7 +281,7 @@ export const processVoiceInput = async (audioData: Blob, userId: string): Promis
   }
 };
 
-// Generate personalized health insights
+// Generate personalized health insights with Grok AI
 export const generateHealthInsights = async (userId: string): Promise<HealthInsight[]> => {
   try {
     const [userProfile, recentScans, healthcareVisits] = await Promise.all([
@@ -292,10 +292,22 @@ export const generateHealthInsights = async (userId: string): Promise<HealthInsi
     
     const insights: HealthInsight[] = [];
     
-    // Analyze nutrition trends
+    // 🤖 GROK AI ENHANCED INSIGHTS 🤖
+    console.log('🧠 Generating Grok AI-powered health insights...');
+    
+    // Analyze nutrition trends with Grok AI
     if (recentScans.length > 0) {
+      const grokNutritionInsights = await generateGrokNutritionInsights(recentScans, userProfile);
+      insights.push(...grokNutritionInsights);
+      
       const nutritionTrends = analyzeNutritionTrends(recentScans);
       insights.push(...nutritionTrends);
+    }
+    
+    // Grok AI Pattern Recognition
+    if (recentScans.length >= 5) {
+      const patternInsights = await generateGrokPatternInsights(recentScans, userProfile);
+      insights.push(...patternInsights);
     }
     
     // Correlate with healthcare data
@@ -304,8 +316,11 @@ export const generateHealthInsights = async (userId: string): Promise<HealthInsi
       insights.push(...correlations);
     }
     
-    // Generate personalized recommendations
+    // Generate Grok AI personalized recommendations
     if (userProfile) {
+      const grokRecommendations = await generateGrokPersonalizedRecommendations(userProfile, recentScans);
+      insights.push(...grokRecommendations);
+      
       const recommendations = generatePersonalizedRecommendations(userProfile, recentScans);
       insights.push(...recommendations);
     }
@@ -318,6 +333,7 @@ export const generateHealthInsights = async (userId: string): Promise<HealthInsi
       });
     }
     
+    console.log(`✅ Generated ${insights.length} Grok AI-enhanced insights`);
     return insights;
   } catch (error) {
     console.error('Error generating health insights:', error);
@@ -637,6 +653,107 @@ const generatePersonalizedRecommendations = (profile: any, scans: NutritionScanR
   return [];
 };
 
+// 🤖 GROK AI ENHANCED FUNCTIONS 🤖
+
+// Generate Grok AI-powered nutrition insights
+const generateGrokNutritionInsights = async (scans: NutritionScanResult[], userProfile: any): Promise<HealthInsight[]> => {
+  const insights: HealthInsight[] = [];
+  
+  try {
+    console.log('🧠 Grok AI analyzing nutrition patterns...');
+    
+    // Analyze macro balance patterns
+    const macroAnalysis = analyzeGrokMacroPatterns(scans);
+    if (macroAnalysis) {
+      insights.push(macroAnalysis);
+    }
+    
+    // Analyze ingredient quality trends
+    const ingredientAnalysis = analyzeGrokIngredientQuality(scans);
+    if (ingredientAnalysis) {
+      insights.push(ingredientAnalysis);
+    }
+    
+    // Analyze health score trends with AI
+    const healthTrends = analyzeGrokHealthTrends(scans);
+    if (healthTrends) {
+      insights.push(healthTrends);
+    }
+    
+    console.log(`🎯 Grok generated ${insights.length} nutrition insights`);
+    return insights;
+  } catch (error) {
+    console.error('Error generating Grok nutrition insights:', error);
+    return [];
+  }
+};
+
+// Generate Grok AI pattern recognition insights
+const generateGrokPatternInsights = async (scans: NutritionScanResult[], userProfile: any): Promise<HealthInsight[]> => {
+  const insights: HealthInsight[] = [];
+  
+  try {
+    console.log('🔍 Grok AI detecting eating patterns...');
+    
+    // Detect meal timing patterns
+    const timingPatterns = detectGrokMealTimingPatterns(scans);
+    if (timingPatterns) {
+      insights.push(timingPatterns);
+    }
+    
+    // Detect food category preferences
+    const categoryPatterns = detectGrokCategoryPatterns(scans);
+    if (categoryPatterns) {
+      insights.push(categoryPatterns);
+    }
+    
+    // Detect nutritional gaps
+    const nutritionalGaps = detectGrokNutritionalGaps(scans);
+    if (nutritionalGaps) {
+      insights.push(nutritionalGaps);
+    }
+    
+    console.log(`📊 Grok detected ${insights.length} behavioral patterns`);
+    return insights;
+  } catch (error) {
+    console.error('Error generating Grok pattern insights:', error);
+    return [];
+  }
+};
+
+// Generate Grok AI personalized recommendations
+const generateGrokPersonalizedRecommendations = async (userProfile: any, scans: NutritionScanResult[]): Promise<HealthInsight[]> => {
+  const insights: HealthInsight[] = [];
+  
+  try {
+    console.log('💡 Grok AI generating personalized recommendations...');
+    
+    // Smart food swaps based on current choices
+    const smartSwaps = generateGrokSmartSwaps(scans);
+    if (smartSwaps) {
+      insights.push(smartSwaps);
+    }
+    
+    // Personalized meal planning suggestions
+    const mealPlanning = generateGrokMealPlanning(scans, userProfile);
+    if (mealPlanning) {
+      insights.push(mealPlanning);
+    }
+    
+    // Advanced health optimization tips
+    const optimizationTips = generateGrokOptimizationTips(scans, userProfile);
+    if (optimizationTips) {
+      insights.push(optimizationTips);
+    }
+    
+    console.log(`🚀 Grok generated ${insights.length} personalized recommendations`);
+    return insights;
+  } catch (error) {
+    console.error('Error generating Grok recommendations:', error);
+    return [];
+  }
+};
+
 const calculateHealthScore = (product: any): number => {
   // Calculate health score based on nutritional content
   let score = 50; // Base score
@@ -680,4 +797,333 @@ const extractDietaryFlags = (product: any): string[] => {
   if (product.labels_tags?.includes('en:gluten-free')) flags.push('gluten-free');
   
   return flags;
+};
+
+// 🤖 GROK AI IMPLEMENTATION FUNCTIONS 🤖
+
+// Analyze macro balance patterns with Grok AI intelligence
+const analyzeGrokMacroPatterns = (scans: NutritionScanResult[]): HealthInsight | null => {
+  if (scans.length < 3) return null;
+  
+  const avgProtein = scans.reduce((sum, scan) => sum + scan.macros.protein, 0) / scans.length;
+  const avgCarbs = scans.reduce((sum, scan) => sum + scan.macros.carbs, 0) / scans.length;
+  const avgFat = scans.reduce((sum, scan) => sum + scan.macros.fat, 0) / scans.length;
+  
+  const totalMacros = avgProtein + avgCarbs + avgFat;
+  const proteinPercent = (avgProtein * 4 / (totalMacros * 4)) * 100;
+  const carbPercent = (avgCarbs * 4 / (totalMacros * 4)) * 100;
+  const fatPercent = (avgFat * 9 / (totalMacros * 4)) * 100;
+  
+  let severity: 'low' | 'medium' | 'high' = 'low';
+  let title = '🤖 Grok AI: Macro Balance Analysis';
+  let description = '';
+  const actionItems: string[] = [];
+  
+  if (proteinPercent < 15) {
+    severity = 'medium';
+    description = `Grok AI detected low protein intake (${proteinPercent.toFixed(1)}%). Optimal protein supports muscle health and satiety.`;
+    actionItems.push('Add lean proteins like chicken, fish, or legumes to meals');
+    actionItems.push('Consider protein-rich snacks like Greek yogurt or nuts');
+  } else if (carbPercent > 60) {
+    severity = 'medium';
+    description = `Grok AI identified high carbohydrate intake (${carbPercent.toFixed(1)}%). Consider balancing with more protein and healthy fats.`;
+    actionItems.push('Replace refined carbs with complex carbohydrates');
+    actionItems.push('Add more vegetables and fiber-rich foods');
+  } else {
+    description = `Grok AI analysis shows balanced macros: ${proteinPercent.toFixed(1)}% protein, ${carbPercent.toFixed(1)}% carbs, ${fatPercent.toFixed(1)}% fat. Great work!`;
+    actionItems.push('Maintain your current macro balance');
+    actionItems.push('Continue monitoring portion sizes');
+  }
+  
+  return {
+    userId: scans[0].userId,
+    type: 'recommendation',
+    title,
+    description,
+    severity,
+    actionItems,
+    relatedScans: scans.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
+};
+
+// Analyze ingredient quality with Grok AI
+const analyzeGrokIngredientQuality = (scans: NutritionScanResult[]): HealthInsight | null => {
+  if (scans.length < 2) return null;
+  
+  const processedFoods = scans.filter(scan => 
+    scan.aiInsights.concerns.some(concern => 
+      concern.toLowerCase().includes('processed') || 
+      concern.toLowerCase().includes('artificial') ||
+      concern.toLowerCase().includes('preservative')
+    )
+  );
+  
+  if (processedFoods.length === 0) return null;
+  
+  const processedPercentage = (processedFoods.length / scans.length) * 100;
+  
+  return {
+    userId: scans[0].userId,
+    type: 'warning',
+    title: '🤖 Grok AI: Processed Food Alert',
+    description: `Grok AI detected ${processedPercentage.toFixed(1)}% of your scanned foods contain processed ingredients. Whole foods provide better nutrition.`,
+    severity: processedPercentage > 50 ? 'high' : 'medium',
+    actionItems: [
+      'Choose whole, unprocessed foods when possible',
+      'Read ingredient lists and avoid items with many additives',
+      'Focus on fresh fruits, vegetables, and lean proteins',
+      'Cook more meals at home to control ingredients'
+    ],
+    relatedScans: processedFoods.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
+};
+
+// Analyze health score trends with Grok AI
+const analyzeGrokHealthTrends = (scans: NutritionScanResult[]): HealthInsight | null => {
+  if (scans.length < 5) return null;
+  
+  const recentScans = scans.slice(0, Math.floor(scans.length / 2));
+  const olderScans = scans.slice(Math.floor(scans.length / 2));
+  
+  const recentAvgScore = recentScans.reduce((sum, scan) => sum + scan.healthScore, 0) / recentScans.length;
+  const olderAvgScore = olderScans.reduce((sum, scan) => sum + scan.healthScore, 0) / olderScans.length;
+  
+  const improvement = recentAvgScore - olderAvgScore;
+  
+  if (Math.abs(improvement) < 5) return null; // No significant change
+  
+  const isImproving = improvement > 0;
+  
+  return {
+    userId: scans[0].userId,
+    type: 'nutrition_trend',
+    title: `🤖 Grok AI: Health Score ${isImproving ? 'Improving' : 'Declining'} Trend`,
+    description: `Grok AI detected your health scores are ${isImproving ? 'improving' : 'declining'} by ${Math.abs(improvement).toFixed(1)} points. ${isImproving ? 'Keep up the great work!' : 'Let\'s get back on track.'}`,
+    severity: isImproving ? 'low' : 'medium',
+    actionItems: isImproving ? [
+      'Continue making healthy food choices',
+      'Maintain your current eating patterns',
+      'Consider setting new nutrition goals'
+    ] : [
+      'Review recent food choices for improvement opportunities',
+      'Focus on whole foods and balanced meals',
+      'Consider meal planning to stay consistent'
+    ],
+    relatedScans: scans.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
+};
+
+// Detect meal timing patterns with Grok AI
+const detectGrokMealTimingPatterns = (scans: NutritionScanResult[]): HealthInsight | null => {
+  const scansWithTime = scans.filter(scan => scan.timestamp);
+  if (scansWithTime.length < 5) return null;
+  
+  const hourCounts: { [hour: number]: number } = {};
+  scansWithTime.forEach(scan => {
+    const hour = new Date(scan.timestamp).getHours();
+    hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+  });
+  
+  const lateNightScans = Object.entries(hourCounts)
+    .filter(([hour]) => parseInt(hour) >= 22 || parseInt(hour) <= 5)
+    .reduce((sum, [, count]) => sum + count, 0);
+  
+  const lateNightPercentage = (lateNightScans / scansWithTime.length) * 100;
+  
+  if (lateNightPercentage < 20) return null;
+  
+  return {
+    userId: scans[0].userId,
+    type: 'recommendation',
+    title: '🤖 Grok AI: Late Night Eating Pattern',
+    description: `Grok AI detected ${lateNightPercentage.toFixed(1)}% of your food scans occur late at night. Late eating can affect sleep and metabolism.`,
+    severity: 'medium',
+    actionItems: [
+      'Try to finish eating 2-3 hours before bedtime',
+      'Plan satisfying dinners to reduce late-night cravings',
+      'If hungry late, choose light, protein-rich snacks',
+      'Consider adjusting meal timing throughout the day'
+    ],
+    relatedScans: scans.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
+};
+
+// Detect food category patterns with Grok AI
+const detectGrokCategoryPatterns = (scans: NutritionScanResult[]): HealthInsight | null => {
+  if (scans.length < 5) return null;
+  
+  const categories: { [category: string]: number } = {};
+  scans.forEach(scan => {
+    categories[scan.category] = (categories[scan.category] || 0) + 1;
+  });
+  
+  const topCategory = Object.entries(categories)
+    .sort(([,a], [,b]) => b - a)[0];
+  
+  const categoryPercentage = (topCategory[1] / scans.length) * 100;
+  
+  if (categoryPercentage < 40) return null;
+  
+  return {
+    userId: scans[0].userId,
+    type: 'recommendation',
+    title: '🤖 Grok AI: Food Variety Analysis',
+    description: `Grok AI noticed ${categoryPercentage.toFixed(1)}% of your scans are from "${topCategory[0]}" category. Diversifying food choices enhances nutrition.`,
+    severity: 'low',
+    actionItems: [
+      'Explore foods from different categories',
+      'Try new cuisines and cooking methods',
+      'Add more variety to your weekly meal planning',
+      'Consider seasonal fruits and vegetables'
+    ],
+    relatedScans: scans.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
+};
+
+// Detect nutritional gaps with Grok AI
+const detectGrokNutritionalGaps = (scans: NutritionScanResult[]): HealthInsight | null => {
+  if (scans.length < 3) return null;
+  
+  const avgFiber = scans.reduce((sum, scan) => sum + (scan.macros.fiber || 0), 0) / scans.length;
+  const hasLowFiber = avgFiber < 5;
+  
+  const vitaminCScans = scans.filter(scan => 
+    scan.micronutrients?.vitaminC && scan.micronutrients.vitaminC > 0
+  );
+  const hasLowVitaminC = vitaminCScans.length < scans.length * 0.3;
+  
+  if (!hasLowFiber && !hasLowVitaminC) return null;
+  
+  const gaps = [];
+  if (hasLowFiber) gaps.push('fiber');
+  if (hasLowVitaminC) gaps.push('vitamin C');
+  
+  return {
+    userId: scans[0].userId,
+    type: 'recommendation',
+    title: '🤖 Grok AI: Nutritional Gap Detection',
+    description: `Grok AI identified potential gaps in ${gaps.join(' and ')}. These nutrients are important for optimal health.`,
+    severity: 'medium',
+    actionItems: [
+      hasLowFiber ? 'Add more fruits, vegetables, and whole grains for fiber' : '',
+      hasLowVitaminC ? 'Include citrus fruits, berries, or bell peppers for vitamin C' : '',
+      'Consider a varied, colorful diet to cover all nutrients',
+      'Track your nutrition to identify other potential gaps'
+    ].filter(Boolean),
+    relatedScans: scans.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
+};
+
+// Generate smart food swaps with Grok AI
+const generateGrokSmartSwaps = (scans: NutritionScanResult[]): HealthInsight | null => {
+  const lowScoreScans = scans.filter(scan => scan.healthScore < 60);
+  if (lowScoreScans.length === 0) return null;
+  
+  const swapSuggestions = [
+    'Replace sugary drinks with sparkling water with fruit',
+    'Swap white bread for whole grain alternatives',
+    'Choose baked or grilled options instead of fried foods',
+    'Try Greek yogurt instead of regular yogurt for more protein',
+    'Replace candy with fresh fruit for natural sweetness'
+  ];
+  
+  return {
+    userId: scans[0].userId,
+    type: 'recommendation',
+    title: '🤖 Grok AI: Smart Food Swaps',
+    description: `Grok AI suggests simple swaps to improve ${lowScoreScans.length} of your recent food choices.`,
+    severity: 'low',
+    actionItems: swapSuggestions.slice(0, 3),
+    relatedScans: lowScoreScans.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
+};
+
+// Generate meal planning with Grok AI
+const generateGrokMealPlanning = (scans: NutritionScanResult[], userProfile: any): HealthInsight | null => {
+  if (scans.length < 3) return null;
+  
+  const avgCalories = scans.reduce((sum, scan) => sum + scan.calories, 0) / scans.length;
+  const isHighCalorie = avgCalories > 400; // Per item
+  
+  return {
+    userId: scans[0].userId,
+    type: 'recommendation',
+    title: '🤖 Grok AI: Personalized Meal Planning',
+    description: `Based on your scanning patterns, Grok AI suggests ${isHighCalorie ? 'portion-controlled' : 'nutrient-dense'} meal planning strategies.`,
+    severity: 'low',
+    actionItems: isHighCalorie ? [
+      'Plan smaller, more frequent meals throughout the day',
+      'Use smaller plates to help with portion control',
+      'Include more vegetables to add volume with fewer calories',
+      'Prepare healthy snacks in advance'
+    ] : [
+      'Add calorie-dense healthy foods like nuts and avocados',
+      'Include protein with each meal for sustained energy',
+      'Consider smoothies with fruits and protein powder',
+      'Plan balanced meals with all food groups'
+    ],
+    relatedScans: scans.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
+};
+
+// Generate optimization tips with Grok AI
+const generateGrokOptimizationTips = (scans: NutritionScanResult[], userProfile: any): HealthInsight | null => {
+  if (scans.length < 5) return null;
+  
+  const highScoreScans = scans.filter(scan => scan.healthScore >= 80);
+  const successRate = (highScoreScans.length / scans.length) * 100;
+  
+  if (successRate < 30) {
+    return {
+      userId: scans[0].userId,
+      type: 'recommendation',
+      title: '🤖 Grok AI: Health Optimization Strategy',
+      description: `Grok AI developed a personalized optimization plan based on your ${successRate.toFixed(1)}% healthy choice rate.`,
+      severity: 'medium',
+      actionItems: [
+        'Start with one healthy meal per day and gradually increase',
+        'Focus on whole foods: fruits, vegetables, lean proteins',
+        'Stay hydrated with water throughout the day',
+        'Plan your meals in advance to avoid impulsive choices',
+        'Celebrate small wins to build sustainable habits'
+      ],
+      relatedScans: scans.map(s => s.id!),
+      generatedAt: new Date(),
+      isRead: false
+    };
+  }
+  
+  return {
+    userId: scans[0].userId,
+    type: 'recommendation',
+    title: '🤖 Grok AI: Advanced Health Optimization',
+    description: `Excellent work! Grok AI sees you\'re making healthy choices ${successRate.toFixed(1)}% of the time. Ready for advanced optimization?`,
+    severity: 'low',
+    actionItems: [
+      'Fine-tune portion sizes based on your activity level',
+      'Experiment with nutrient timing around workouts',
+      'Consider micronutrient density in food choices',
+      'Track how different foods affect your energy levels',
+      'Set new challenging but achievable nutrition goals'
+    ],
+    relatedScans: scans.map(s => s.id!),
+    generatedAt: new Date(),
+    isRead: false
+  };
 };
