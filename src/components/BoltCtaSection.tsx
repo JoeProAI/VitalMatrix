@@ -41,7 +41,7 @@ const BoltCtaSection: React.FC = () => {
             </h2>
             
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join thousands of users making smarter healthcare decisions with 
+              Join 500+ beta users making smarter healthcare decisions with 
               real-time insights and AI-powered nutrition intelligence.
             </p>
             

@@ -161,7 +161,7 @@ const CommunitySection = () => {
                 </div>
                 
                 <div className="text-center text-sm text-gray-400">
-                  Last updated: Just now • Based on 43 community reports
+                  Last updated: Just now • Based on 127 community reports
                 </div>
               </div>
             </div>
