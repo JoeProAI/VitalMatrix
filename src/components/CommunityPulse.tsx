@@ -78,18 +78,6 @@ if (!googleMapsApiKey) {
 // Static libraries array to prevent performance warnings
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
 
-// Helper functions for wait time formatting
-const formatWaitTime = (facility: HealthcareFacility): string => {
-  if (facility.currentWaitTime !== undefined) {
-    return facility.currentWaitTime === 0 ? 'No wait' : `${facility.currentWaitTime} min`;
-  }
-  return 'Unknown';
-};
-
-const formatReviewWaitTime = (waitTime: number): string => {
-  return waitTime === 0 ? 'No wait' : `${waitTime} min`;
-};
-
 const CommunityPulse: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
