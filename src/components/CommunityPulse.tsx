@@ -237,8 +237,8 @@ const CommunityPulse: React.FC = () => {
       const quickFacilities = uniqueCritical.map((facility) => ({
         ...facility,
         id: facility.googlePlaceId,
-        currentWaitTime: generateWaitTime(facility.type),
-        lastWaitTimeUpdate: new Date(),
+        currentWaitTime: 0, // No automatic wait times - only user-reported
+        lastWaitTimeUpdate: undefined, // No automatic updates
         crowdingLevel: 'moderate' as const,
         averageRating: (facility as any).rating || 0,
         ratingCount: (facility as any).userRatingsTotal || 0
@@ -263,8 +263,8 @@ const CommunityPulse: React.FC = () => {
           const completeFacilities = uniqueFacilities.map((facility) => ({
             ...facility,
             id: facility.googlePlaceId,
-            currentWaitTime: generateWaitTime(facility.type),
-            lastWaitTimeUpdate: new Date(),
+            currentWaitTime: 0, // No automatic wait times - only user-reported
+            lastWaitTimeUpdate: undefined, // No automatic updates
             crowdingLevel: 'moderate' as const,
             averageRating: (facility as any).rating || 0,
             ratingCount: (facility as any).userRatingsTotal || 0
