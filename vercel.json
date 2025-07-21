@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildTimestamp": "2025-07-20T22:30:00Z",
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
