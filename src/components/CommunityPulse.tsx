@@ -75,8 +75,15 @@ if (!googleMapsApiKey) {
   console.error('Expected environment variable: VITE_GOOGLE_MAPS_API_KEY');
 }
 
-// Static libraries array to prevent performance warnings
+// Static libraries array to prevent performance warnings - MOVED OUTSIDE COMPONENT
 const GOOGLE_MAPS_LIBRARIES: ('places')[] = ['places'];
+
+// Move this outside to prevent reloading
+const GOOGLE_MAPS_OPTIONS = {
+  id: 'google-map-script',
+  libraries: GOOGLE_MAPS_LIBRARIES,
+  preventGoogleFontsLoading: true
+};
 
 const CommunityPulse: React.FC = () => {
   const navigate = useNavigate();
@@ -129,13 +136,10 @@ const CommunityPulse: React.FC = () => {
   const mapRef = useRef<google.maps.Map | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
-  // Load Google Maps API (only if key is available)
+  // Load Google Maps API (only if key is available) - using static config
   const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: googleMapsApiKey || '',
-    libraries: GOOGLE_MAPS_LIBRARIES,
-    // Prevent loading if no API key
-    preventGoogleFontsLoading: true
+    ...GOOGLE_MAPS_OPTIONS,
+    googleMapsApiKey: googleMapsApiKey || ''
   });
   
   // Show error if API key is missing
@@ -227,8 +231,8 @@ const CommunityPulse: React.FC = () => {
         currentWaitTime: generateWaitTime(facility.type),
         lastWaitTimeUpdate: new Date(),
         crowdingLevel: 'moderate' as const,
-        averageRating: facility.rating || 0,
-        ratingCount: facility.userRatingsTotal || 0
+        averageRating: (facility as any).rating || 0,
+        ratingCount: (facility as any).userRatingsTotal || 0
       }));
       
       setFacilities(quickFacilities);
@@ -253,8 +257,8 @@ const CommunityPulse: React.FC = () => {
             currentWaitTime: generateWaitTime(facility.type),
             lastWaitTimeUpdate: new Date(),
             crowdingLevel: 'moderate' as const,
-            averageRating: facility.rating || 0,
-            ratingCount: facility.userRatingsTotal || 0
+            averageRating: (facility as any).rating || 0,
+            ratingCount: (facility as any).userRatingsTotal || 0
           }));
           
           // Cache the complete results
