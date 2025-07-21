@@ -105,6 +105,7 @@ const CommunityPulse: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [activeView, setActiveView] = useState<'map' | 'reviews' | 'times'>('map');
+  const [mapReady, setMapReady] = useState<boolean>(false);
   const [facilityFilters, setFacilityFilters] = useState({
     hospital: true,
     pharmacy: true,
@@ -187,6 +188,14 @@ const CommunityPulse: React.FC = () => {
       loadRealFacilities(mapPosition, searchRadius * 1000);
     }
   }, [searchRadius, googleMapsApiKey, isLoaded]); // Removed mapPosition to prevent reloading on map drag
+
+  // Load facilities when map becomes ready (fixes marker rendering timing issue)
+  useEffect(() => {
+    if (mapReady && mapPosition && googleMapsApiKey && isLoaded && facilities.length === 0) {
+      console.log('🗺️ Map is ready, loading facilities for marker rendering...');
+      loadRealFacilities(mapPosition, searchRadius * 1000);
+    }
+  }, [mapReady, mapPosition, googleMapsApiKey, isLoaded, facilities.length, searchRadius]);
 
   // Load real healthcare facilities from Google Places API with caching
   const loadRealFacilities = useCallback(async (position: MapPosition, radius: number = 5000) => {
@@ -470,6 +479,8 @@ const CommunityPulse: React.FC = () => {
   // Handle map load
   const onMapLoad = useCallback((map: google.maps.Map) => {
     mapRef.current = map;
+    setMapReady(true);
+    console.log('🗺️ Map is ready for marker rendering');
   }, []);
 
   // Handle marker click to select facility
@@ -1010,8 +1021,8 @@ const CommunityPulse: React.FC = () => {
             // Don't update map position on click to prevent unwanted location changes
           }}
         >
-          {/* Display markers for each facility (filtered by type) */}
-          {facilities
+          {/* Display markers for each facility (filtered by type) - only when map is ready */}
+          {mapReady && facilities
             .filter(facility => {
               const facilityType = facility.type as keyof typeof facilityFilters;
               return facilityFilters[facilityType] !== false;
