@@ -269,6 +269,23 @@ const CommunityPulse: React.FC = () => {
           console.log(`✅ Complete loaded ${completeFacilities.length} total facilities`);
         } catch (bgError) {
           console.warn('Background facility loading failed:', bgError);
+          
+          // Check if this is just a ZERO_RESULTS (no facilities in area) vs real API error
+          const errorMessage = bgError instanceof Error ? bgError.message : String(bgError);
+          if (errorMessage.includes('ZERO_RESULTS')) {
+            console.log('⚠️ No facilities found in this area - clearing display for new area');
+            setFacilities([]); // Clear facilities for new area with no results
+            setError('No healthcare facilities found in this area.');
+          } else {
+            // Real API error - keep cached facilities if we have them
+            if (facilities.length === 0) {
+              setError('Failed to load nearby facilities. Please try again.');
+              setFacilities([]);
+            } else {
+              console.log('📦 Keeping existing cached facilities due to API error');
+              setError('');
+            }
+          }
         }
       }, 100);
     } catch (error) {

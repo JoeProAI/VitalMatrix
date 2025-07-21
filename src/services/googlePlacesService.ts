@@ -122,10 +122,17 @@ export const searchHealthcareFacilities = async (
 
     const data: PlacesSearchResponse = await response.json();
     
+    console.log(`📍 Frontend received: ${data.status}, ${data.results?.length || 0} results`);
+    
     if (data.status !== 'OK') {
       throw new Error(`Places API status: ${data.status}`);
     }
 
+    if (!data.results || data.results.length === 0) {
+      console.log(`⚠️ No ${searchType} facilities found in this area`);
+      return [];
+    }
+    
     // Filter for healthcare-related places and convert to our format
     const healthcareFacilities = data.results
       .filter(place => 
