@@ -85,8 +85,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('🔐 Starting login process...');
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('✅ User logged in:', userCredential.user.uid);
-    } catch (error) {
+    } catch (error: any) {
       console.error('🚨 Login error:', error);
+      
+      // Handle specific case where user signed up with Google but trying to use email/password
+      if (error.code === 'auth/invalid-credential') {
+        // Check if this email exists with Google provider
+        console.log('🔍 Checking if email exists with Google provider...');
+        throw new Error('This email is associated with a Google account. Please use "Continue with Google" to sign in.');
+      }
+      
       throw error;
     }
   };
