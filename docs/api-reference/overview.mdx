@@ -1,0 +1,154 @@
+---
+title: "API Overview"
+description: "Complete VitalMatrix API reference for healthcare and nutrition intelligence"
+---
+
+# 🚀 VitalMatrix API Overview
+
+Welcome to the comprehensive VitalMatrix API documentation. Our platform provides advanced healthcare facility intelligence and AI-powered nutrition analysis through a robust set of APIs.
+
+## 🏗️ **Current Status**
+
+<Warning>
+**Under Active Development**: VitalMatrix is currently in active development as part of our hackathon project. While core functionality is operational, some advanced features are still being implemented.
+</Warning>
+
+### ✅ **Production Ready**
+- **Authentication System**: Firebase-based user authentication
+- **NutriLens Core**: Barcode scanning and basic nutrition analysis
+- **Community Pulse**: Healthcare facility search and basic reviews
+- **User Profiles**: Basic profile management and data storage
+
+### 🚧 **Under Construction**
+- **Advanced AI Insights**: Grok AI-powered health recommendations
+- **Real-time Analytics**: Advanced pattern recognition and scoring
+- **Enterprise Features**: Bulk operations and advanced integrations
+- **Mobile SDK**: Native mobile app integration
+
+## 🌟 **API Categories**
+
+### 🍎 **NutriLens API**
+Advanced nutrition analysis and food intelligence
+- **Barcode Scanning**: Multi-format barcode detection with fallbacks
+- **AI Food Analysis**: Computer vision-powered food recognition
+- **Nutrition Data**: Comprehensive macro and micronutrient information
+- **Health Insights**: Personalized recommendations and trend analysis
+
+### 🏥 **Community Pulse API**
+Healthcare facility intelligence and community reviews
+- **Places Search**: Real-time healthcare facility discovery
+- **Facility Details**: Comprehensive facility information and services
+- **Reviews System**: Community-driven facility ratings and feedback
+- **Wait Times**: Real-time wait time tracking and predictions
+
+### 👤 **User Profile API**
+Comprehensive user data management and personalization
+- **Profile Management**: User information and preferences
+- **Health Data**: Medical history and health metrics tracking
+- **Preferences**: Customizable settings and notification preferences
+- **Activity Tracking**: User interaction and engagement analytics
+
+### 🤖 **AI & Analytics**
+Advanced artificial intelligence and predictive analytics
+- **Grok Insights**: AI-powered health pattern recognition
+- **Pattern Recognition**: Behavioral analysis and trend identification
+- **Recommendations**: Personalized health and nutrition suggestions
+- **Health Scoring**: Comprehensive health assessment algorithms
+
+### 🔗 **External Integrations**
+Third-party service integrations and data sources
+- **Google Places**: Healthcare facility data and location services
+- **Firebase**: Authentication, database, and real-time synchronization
+- **OpenFoodFacts**: Global food product database integration
+- **Daytona**: Cloud development and deployment platform
+
+## 🔐 **Authentication**
+
+All VitalMatrix APIs use Firebase Authentication with JWT tokens. Users must be authenticated to access most endpoints.
+
+```javascript
+// Example authentication header
+headers: {
+  'Authorization': 'Bearer YOUR_FIREBASE_JWT_TOKEN',
+  'Content-Type': 'application/json'
+}
+```
+
+## 🌐 **Base URLs**
+
+### Production Environment
+```
+https://vitalmatrix.joepro.ai/api
+```
+
+### Development Environment (Daytona)
+```
+https://your-daytona-workspace.daytona.io/api
+```
+
+## 📊 **Rate Limits**
+
+<Info>
+**Current Limits**: During development phase, rate limits are generous to support testing and integration.
+</Info>
+
+- **Authenticated Users**: 1000 requests/hour
+- **Anonymous Users**: 100 requests/hour
+- **Burst Limit**: 50 requests/minute
+
+## 🚀 **Getting Started**
+
+1. **Sign Up**: Create a VitalMatrix account at [vitalmatrix.joepro.ai](https://vitalmatrix.joepro.ai)
+2. **Get API Key**: Access your API credentials from the dashboard
+3. **Choose Your Integration**: Select the appropriate API category for your needs
+4. **Start Building**: Use our comprehensive documentation and examples
+
+## 📚 **Quick Links**
+
+<CardGroup cols={2}>
+  <Card title="Authentication Guide" icon="key" href="/api-reference/authentication">
+    Set up authentication and get your first API token
+  </Card>
+  <Card title="NutriLens API" icon="apple" href="/api-reference/nutrilens/barcode-scan">
+    Start with barcode scanning and nutrition analysis
+  </Card>
+  <Card title="Community Pulse API" icon="hospital" href="/api-reference/community/places-search">
+    Discover healthcare facilities and community data
+  </Card>
+  <Card title="User Profile API" icon="user" href="/api-reference/user/profile-management">
+    Manage user data and personalization
+  </Card>
+</CardGroup>
+
+## 🤝 **Support & Community**
+
+- **GitHub**: [VitalMatrix Repository](https://github.com/JoeProAI/VitalMatrix)
+- **Issues**: Report bugs and request features
+- **Discussions**: Join our developer community
+- **Email**: support@vitalmatrix.ai
+
+## 📈 **Roadmap**
+
+### Q4 2024
+- ✅ Core API infrastructure
+- ✅ Basic authentication system
+- ✅ NutriLens barcode scanning
+- ✅ Community Pulse facility search
+
+### Q1 2025
+- 🚧 Advanced AI insights integration
+- 🚧 Real-time analytics dashboard
+- 🚧 Mobile SDK release
+- 🚧 Enterprise features
+
+### Q2 2025
+- 📋 Advanced health scoring algorithms
+- 📋 Predictive analytics
+- 📋 Third-party integrations
+- 📋 API versioning and backwards compatibility
+
+---
+
+<Note>
+**Hackathon Project**: VitalMatrix was developed during a 72-hour hackathon and represents a comprehensive vision for healthcare and nutrition intelligence. While core features are functional, advanced capabilities are actively being developed.
+</Note>

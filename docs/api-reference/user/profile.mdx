@@ -1,0 +1,865 @@
+---
+title: "User Profile API"
+description: "Manage user profiles, health data, goals, and personal preferences"
+---
+
+# 👤 User Profile API
+
+The User Profile API provides comprehensive user data management including personal information, health profiles, dietary preferences, allergies, and health goals.
+
+## 🏗️ **Production Status**
+
+<Check>
+**Production Ready**: User Profile system is fully operational with complete CRUD functionality.
+</Check>
+
+### ✅ **Live Features**
+- Complete user profile management
+- Health goals and tracking
+- Allergy and dietary restriction management
+- Profile editing with real-time updates
+- Firebase integration with security rules
+- Protected routes and authentication
+
+## 📋 **Data Models**
+
+### User Profile Schema
+
+```typescript
+interface UserProfile {
+  uid: string;                    // Firebase user ID
+  email: string;                  // User email address
+  firstName: string;              // First name
+  lastName: string;               // Last name
+  dateOfBirth?: Date;            // Date of birth
+  gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  height?: number;               // Height in cm
+  weight?: number;               // Weight in kg
+  allergies: string[];           // Food allergies
+  dietaryRestrictions: string[]; // Dietary preferences/restrictions
+  healthConditions: string[];    // Medical conditions
+  medications: string[];         // Current medications
+  emergencyContact?: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+  preferences: {
+    units: 'metric' | 'imperial';
+    notifications: boolean;
+    dataSharing: boolean;
+  };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+interface UserGoal {
+  id: string;
+  userId: string;
+  type: 'weight_loss' | 'weight_gain' | 'muscle_gain' | 'maintenance' | 'health_improvement';
+  title: string;
+  description: string;
+  targetValue?: number;
+  currentValue?: number;
+  unit?: string;
+  targetDate?: Date;
+  status: 'active' | 'completed' | 'paused';
+  progress: number;              // 0-100 percentage
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+interface HealthInsight {
+  id: string;
+  userId: string;
+  type: 'nutrition' | 'pattern' | 'recommendation' | 'warning';
+  title: string;
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  actionItems: string[];
+  relatedScans: string[];        // Nutrition scan IDs
+  createdAt: Timestamp;
+  expiresAt?: Timestamp;
+}
+```
+
+## 🔐 **Authentication & Security**
+
+### Authentication Requirements
+
+All User Profile API endpoints require Firebase Authentication with a valid JWT token.
+
+```typescript
+// Authentication header format
+Authorization: Bearer <firebase_jwt_token>
+```
+
+### Security Rules
+
+```javascript
+// Firestore security rules for user profiles
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User profiles - users can only access their own
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // User goals - users can only access their own
+    match /user_goals/{goalId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+    
+    // Health insights - users can only access their own
+    match /health_insights/{insightId} {
+      allow read, write: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.userId;
+    }
+  }
+}
+```
+
+## 📡 **API Endpoints**
+
+### Get User Profile
+
+Retrieve the current user's profile information.
+
+```http
+GET /api/user/profile
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "uid": "user123",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "dateOfBirth": "1990-01-15",
+    "gender": "male",
+    "height": 175,
+    "weight": 70,
+    "allergies": ["peanuts", "shellfish"],
+    "dietaryRestrictions": ["vegetarian"],
+    "healthConditions": [],
+    "medications": [],
+    "preferences": {
+      "units": "metric",
+      "notifications": true,
+      "dataSharing": false
+    },
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+### Create User Profile
+
+Create a new user profile (typically called after user registration).
+
+```http
+POST /api/user/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "1990-01-15",
+  "gender": "male",
+  "height": 175,
+  "weight": 70,
+  "allergies": ["peanuts"],
+  "dietaryRestrictions": ["vegetarian"],
+  "preferences": {
+    "units": "metric",
+    "notifications": true,
+    "dataSharing": false
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Profile created successfully",
+  "data": {
+    "uid": "user123",
+    "email": "user@example.com",
+    // ... full profile data
+  }
+}
+```
+
+### Update User Profile
+
+Update existing user profile information.
+
+```http
+PUT /api/user/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Smith",
+  "weight": 72,
+  "allergies": ["peanuts", "shellfish"],
+  "preferences": {
+    "notifications": false
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": {
+    // ... updated profile data
+  }
+}
+```
+
+### Delete User Profile
+
+Delete the user's profile and all associated data.
+
+```http
+DELETE /api/user/profile
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Profile deleted successfully"
+}
+```
+
+## 🎯 **Goals Management**
+
+### Get User Goals
+
+Retrieve all goals for the current user.
+
+```http
+GET /api/user/goals
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+- `status` (optional): Filter by goal status (`active`, `completed`, `paused`)
+- `type` (optional): Filter by goal type
+- `limit` (optional): Maximum number of goals to return (default: 50)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "goal123",
+      "userId": "user123",
+      "type": "weight_loss",
+      "title": "Lose 10kg",
+      "description": "Lose 10kg in 6 months through healthy eating and exercise",
+      "targetValue": 60,
+      "currentValue": 70,
+      "unit": "kg",
+      "targetDate": "2024-07-01",
+      "status": "active",
+      "progress": 30,
+      "createdAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+### Create User Goal
+
+Create a new health goal for the user.
+
+```http
+POST /api/user/goals
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "type": "weight_loss",
+  "title": "Lose 10kg",
+  "description": "Lose 10kg in 6 months through healthy eating and exercise",
+  "targetValue": 60,
+  "currentValue": 70,
+  "unit": "kg",
+  "targetDate": "2024-07-01"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Goal created successfully",
+  "data": {
+    "id": "goal123",
+    // ... full goal data
+  }
+}
+```
+
+### Update User Goal
+
+Update an existing goal.
+
+```http
+PUT /api/user/goals/{goalId}
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "currentValue": 68,
+  "progress": 40,
+  "status": "active"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Goal updated successfully",
+  "data": {
+    // ... updated goal data
+  }
+}
+```
+
+### Delete User Goal
+
+Delete a specific goal.
+
+```http
+DELETE /api/user/goals/{goalId}
+Authorization: Bearer <token>
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Goal deleted successfully"
+}
+```
+
+## 🧠 **Health Insights**
+
+### Get Health Insights
+
+Retrieve health insights for the current user.
+
+```http
+GET /api/user/insights
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+- `type` (optional): Filter by insight type (`nutrition`, `pattern`, `recommendation`, `warning`)
+- `severity` (optional): Filter by severity level (`low`, `medium`, `high`)
+- `limit` (optional): Maximum number of insights to return (default: 50)
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "insight123",
+      "userId": "user123",
+      "type": "nutrition",
+      "title": "🤖 Grok AI: High Sodium Intake Detected",
+      "description": "Your recent scans show consistently high sodium levels. Consider reducing processed foods.",
+      "severity": "medium",
+      "actionItems": [
+        "Choose fresh foods over processed alternatives",
+        "Read nutrition labels for sodium content",
+        "Cook more meals at home"
+      ],
+      "relatedScans": ["scan123", "scan124"],
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+### Create Health Insight
+
+Create a new health insight (typically generated by AI systems).
+
+```http
+POST /api/user/insights
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "type": "recommendation",
+  "title": "🤖 Grok AI: Protein Intake Optimization",
+  "description": "Based on your goals, consider increasing protein intake to support muscle growth.",
+  "severity": "low",
+  "actionItems": [
+    "Add lean protein to each meal",
+    "Consider protein-rich snacks",
+    "Track protein intake daily"
+  ],
+  "relatedScans": ["scan125"]
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "Insight created successfully",
+  "data": {
+    "id": "insight124",
+    // ... full insight data
+  }
+}
+```
+
+## 💻 **Client SDK Examples**
+
+### React/TypeScript Integration
+
+```typescript
+// userProfileService.ts
+import { getAuth } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
+
+export class UserProfileService {
+  private auth = getAuth();
+
+  // Get authenticated user's profile
+  async getUserProfile(): Promise<UserProfile | null> {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const profileRef = doc(db, 'users', user.uid);
+    const profileSnap = await getDoc(profileRef);
+    
+    return profileSnap.exists() ? profileSnap.data() as UserProfile : null;
+  }
+
+  // Create new user profile
+  async createUserProfile(profileData: Partial<UserProfile>): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const profileRef = doc(db, 'users', user.uid);
+    await setDoc(profileRef, {
+      ...profileData,
+      uid: user.uid,
+      email: user.email,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+  }
+
+  // Update user profile
+  async updateUserProfile(updates: Partial<UserProfile>): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const profileRef = doc(db, 'users', user.uid);
+    await updateDoc(profileRef, {
+      ...updates,
+      updatedAt: new Date()
+    });
+  }
+
+  // Delete user profile
+  async deleteUserProfile(): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) throw new Error('User not authenticated');
+
+    const profileRef = doc(db, 'users', user.uid);
+    await deleteDoc(profileRef);
+  }
+}
+```
+
+### React Hook for Profile Management
+
+```typescript
+// useUserProfile.ts
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { UserProfileService } from '../services/userProfileService';
+
+export const useUserProfile = () => {
+  const { currentUser } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const profileService = new UserProfileService();
+
+  useEffect(() => {
+    if (currentUser) {
+      loadProfile();
+    } else {
+      setProfile(null);
+      setLoading(false);
+    }
+  }, [currentUser]);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const profileData = await profileService.getUserProfile();
+      setProfile(profileData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    try {
+      setError(null);
+      await profileService.updateUserProfile(updates);
+      setProfile(prev => prev ? { ...prev, ...updates } : null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update profile');
+      throw err;
+    }
+  };
+
+  const createProfile = async (profileData: Partial<UserProfile>) => {
+    try {
+      setError(null);
+      await profileService.createUserProfile(profileData);
+      await loadProfile();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create profile');
+      throw err;
+    }
+  };
+
+  return {
+    profile,
+    loading,
+    error,
+    updateProfile,
+    createProfile,
+    refreshProfile: loadProfile
+  };
+};
+```
+
+### Profile Component Example
+
+```typescript
+// UserProfile.tsx
+import React, { useState } from 'react';
+import { useUserProfile } from '../hooks/useUserProfile';
+
+export const UserProfile: React.FC = () => {
+  const { profile, loading, error, updateProfile } = useUserProfile();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    allergies: [] as string[],
+    dietaryRestrictions: [] as string[]
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setEditForm({
+        firstName: profile.firstName || '',
+        lastName: profile.lastName || '',
+        allergies: profile.allergies || [],
+        dietaryRestrictions: profile.dietaryRestrictions || []
+      });
+    }
+  }, [profile]);
+
+  const handleSave = async () => {
+    try {
+      await updateProfile(editForm);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    }
+  };
+
+  if (loading) return <div>Loading profile...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!profile) return <div>No profile found</div>;
+
+  return (
+    <div className="max-w-2xl mx-auto p-6">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">User Profile</h1>
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            {isEditing ? 'Cancel' : 'Edit'}
+          </button>
+        </div>
+
+        {isEditing ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                First Name
+              </label>
+              <input
+                type="text"
+                value={editForm.firstName}
+                onChange={(e) => setEditForm({...editForm, firstName: e.target.value})}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={editForm.lastName}
+                onChange={(e) => setEditForm({...editForm, lastName: e.target.value})}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Allergies
+              </label>
+              <div className="mt-2 space-y-2">
+                {editForm.allergies.map((allergy, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={allergy}
+                      onChange={(e) => {
+                        const newAllergies = [...editForm.allergies];
+                        newAllergies[index] = e.target.value;
+                        setEditForm({...editForm, allergies: newAllergies});
+                      }}
+                      className="flex-1 rounded-md border-gray-300 shadow-sm"
+                    />
+                    <button
+                      onClick={() => {
+                        const newAllergies = editForm.allergies.filter((_, i) => i !== index);
+                        setEditForm({...editForm, allergies: newAllergies});
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setEditForm({...editForm, allergies: [...editForm.allergies, '']})}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Add Allergy
+                </button>
+              </div>
+            </div>
+
+            <div className="flex space-x-4">
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-medium">Personal Information</h3>
+              <p><strong>Name:</strong> {profile.firstName} {profile.lastName}</p>
+              <p><strong>Email:</strong> {profile.email}</p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-medium">Health Information</h3>
+              <p><strong>Allergies:</strong> {profile.allergies.join(', ') || 'None'}</p>
+              <p><strong>Dietary Restrictions:</strong> {profile.dietaryRestrictions.join(', ') || 'None'}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+```
+
+## 🚨 **Error Handling**
+
+### Common Error Responses
+
+```json
+// Authentication Error
+{
+  "success": false,
+  "error": "UNAUTHORIZED",
+  "message": "Authentication required",
+  "code": 401
+}
+
+// Validation Error
+{
+  "success": false,
+  "error": "VALIDATION_ERROR",
+  "message": "Invalid input data",
+  "details": {
+    "firstName": "First name is required",
+    "email": "Invalid email format"
+  },
+  "code": 400
+}
+
+// Not Found Error
+{
+  "success": false,
+  "error": "NOT_FOUND",
+  "message": "User profile not found",
+  "code": 404
+}
+
+// Server Error
+{
+  "success": false,
+  "error": "INTERNAL_ERROR",
+  "message": "An unexpected error occurred",
+  "code": 500
+}
+```
+
+### Error Handling Best Practices
+
+```typescript
+// Error handling utility
+export class UserProfileError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public statusCode: number = 500
+  ) {
+    super(message);
+    this.name = 'UserProfileError';
+  }
+}
+
+// Service with proper error handling
+export class UserProfileService {
+  async getUserProfile(): Promise<UserProfile | null> {
+    try {
+      const user = this.auth.currentUser;
+      if (!user) {
+        throw new UserProfileError(
+          'User not authenticated',
+          'UNAUTHORIZED',
+          401
+        );
+      }
+
+      const profileRef = doc(db, 'users', user.uid);
+      const profileSnap = await getDoc(profileRef);
+      
+      return profileSnap.exists() ? profileSnap.data() as UserProfile : null;
+    } catch (error) {
+      if (error instanceof UserProfileError) {
+        throw error;
+      }
+      
+      console.error('Error getting user profile:', error);
+      throw new UserProfileError(
+        'Failed to retrieve user profile',
+        'FETCH_ERROR',
+        500
+      );
+    }
+  }
+}
+```
+
+---
+
+<Note>
+**Production Status**: User Profile API is fully operational with complete CRUD functionality, real-time updates, and comprehensive security rules.
+</Note>
+
+## 🔗 **Related Documentation**
+
+- [Authentication](/api-reference/authentication) - User authentication and security
+- [Firebase Integration](/api-reference/integrations/firebase) - Database and backend services
+- [NutriLens API](/api-reference/nutrilens/barcode-scan) - Nutrition scanning integration
+- [AI Insights API](/api-reference/ai/grok-insights) - Health insights and recommendations

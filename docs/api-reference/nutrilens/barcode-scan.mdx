@@ -1,0 +1,320 @@
+---
+title: "Barcode Scanning API"
+description: "Advanced barcode detection and nutrition data retrieval"
+---
+
+# 🔍 Barcode Scanning API
+
+The VitalMatrix Barcode Scanning API provides advanced multi-format barcode detection with intelligent fallbacks and comprehensive nutrition data retrieval.
+
+## 🏗️ **Development Status**
+
+<Warning>
+**Under Construction**: Advanced barcode scanning features are currently being enhanced. Core functionality is operational.
+</Warning>
+
+### ✅ **Currently Available**
+- Basic barcode detection via camera
+- Manual barcode input
+- OpenFoodFacts integration
+- Nutrition data retrieval
+
+### 🚧 **In Development**
+- Native BarcodeDetector API integration
+- ZXing library fallback system
+- Multi-format barcode support (EAN-13, UPC-A, Code-128, QR codes)
+- Real-time video stream processing
+
+## 📱 **Endpoints**
+
+### Scan Barcode from Image
+
+<Warning>
+**Daytona Deployment**: This endpoint will be available when deployed to Daytona cloud infrastructure.
+</Warning>
+
+```http
+POST /api/nutrilens/scan-barcode
+```
+
+**Request Body:**
+```json
+{
+  "image": "base64_encoded_image_data",
+  "scanMethod": "camera" | "upload",
+  "userId": "firebase_user_id"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "barcode": "1234567890123",
+  "scanResult": {
+    "foodItem": "Organic Whole Milk",
+    "brand": "Horizon Organic",
+    "calories": 150,
+    "macros": {
+      "protein": 8,
+      "carbs": 12,
+      "fat": 8,
+      "fiber": 0
+    },
+    "micronutrients": {
+      "calcium": 280,
+      "vitaminD": 120,
+      "vitaminA": 500
+    },
+    "allergens": ["milk"],
+    "healthScore": 75,
+    "category": "dairy"
+  }
+}
+```
+
+### Manual Barcode Lookup
+
+```http
+GET /api/nutrilens/barcode/{barcode_number}
+```
+
+**Parameters:**
+- `barcode_number` (string): The barcode number to lookup
+
+**Response:**
+```json
+{
+  "success": true,
+  "product": {
+    "barcode": "1234567890123",
+    "name": "Organic Whole Milk",
+    "brand": "Horizon Organic",
+    "nutrition": {
+      "calories_per_100g": 61,
+      "proteins_100g": 3.2,
+      "carbohydrates_100g": 4.8,
+      "fat_100g": 3.3
+    },
+    "allergens": ["en:milk"],
+    "labels": ["en:organic", "en:non-gmo"]
+  }
+}
+```
+
+## 🛠️ **Client-Side Integration**
+
+### JavaScript/TypeScript Example
+
+```typescript
+import { barcodeScanner } from '@vitalmatrix/nutrilens';
+
+// Camera-based scanning
+const scanFromCamera = async () => {
+  try {
+    const result = await barcodeScanner.scanFromVideo(videoElement);
+    console.log('Detected barcode:', result.barcode);
+    
+    // Get nutrition data
+    const nutrition = await fetch(`/api/nutrilens/barcode/${result.barcode}`);
+    const data = await nutrition.json();
+    
+    return data;
+  } catch (error) {
+    console.error('Scanning failed:', error);
+  }
+};
+
+// Image upload scanning
+const scanFromImage = async (imageFile: File) => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  
+  const response = await fetch('/api/nutrilens/scan-barcode', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${userToken}`
+    },
+    body: formData
+  });
+  
+  return response.json();
+};
+```
+
+### React Component Example
+
+```tsx
+import React, { useRef, useState } from 'react';
+import { Camera, Upload } from 'lucide-react';
+
+const BarcodeScanner: React.FC = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [scanning, setScanning] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error('Camera access denied:', error);
+    }
+  };
+
+  const scanBarcode = async () => {
+    setScanning(true);
+    // Scanning logic here
+    setScanning(false);
+  };
+
+  return (
+    <div className="barcode-scanner">
+      <video ref={videoRef} autoPlay playsInline />
+      <button onClick={scanBarcode} disabled={scanning}>
+        <Camera size={20} />
+        {scanning ? 'Scanning...' : 'Scan Barcode'}
+      </button>
+    </div>
+  );
+};
+```
+
+## 🔧 **Advanced Features**
+
+### Multi-Format Support
+
+<Info>
+**Coming Soon**: Support for multiple barcode formats with intelligent detection.
+</Info>
+
+```typescript
+// Future implementation
+const supportedFormats = [
+  'EAN-13',
+  'EAN-8', 
+  'UPC-A',
+  'UPC-E',
+  'Code-128',
+  'Code-39',
+  'QR Code',
+  'Data Matrix'
+];
+```
+
+### Fallback Detection
+
+```typescript
+// Current implementation approach
+const detectBarcode = async (imageData: ImageData) => {
+  try {
+    // Try native BarcodeDetector first
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector();
+      const barcodes = await detector.detect(imageData);
+      return barcodes[0]?.rawValue;
+    }
+    
+    // Fallback to ZXing library
+    return await ZXingBrowser.decodeOnce(imageData);
+  } catch (error) {
+    throw new Error('Barcode detection failed');
+  }
+};
+```
+
+## 📊 **Error Handling**
+
+### Common Error Codes
+
+| Code | Description | Solution |
+|------|-------------|----------|
+| `CAMERA_ACCESS_DENIED` | User denied camera permissions | Request permissions again |
+| `BARCODE_NOT_FOUND` | No barcode detected in image | Improve lighting/focus |
+| `PRODUCT_NOT_FOUND` | Barcode not in database | Manual entry option |
+| `INVALID_FORMAT` | Unsupported barcode format | Try different scanning method |
+
+### Error Response Format
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "BARCODE_NOT_FOUND",
+    "message": "No barcode detected in the provided image",
+    "details": {
+      "imageQuality": "low",
+      "suggestions": [
+        "Ensure good lighting",
+        "Hold camera steady",
+        "Try manual input"
+      ]
+    }
+  }
+}
+```
+
+## 🚀 **Performance Optimization**
+
+### Image Compression
+
+```typescript
+const compressImage = (file: File, quality: number = 0.8): Promise<Blob> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Optimize dimensions for scanning
+      const maxWidth = 800;
+      const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+      
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(resolve, 'image/jpeg', quality);
+    };
+    
+    img.src = URL.createObjectURL(file);
+  });
+};
+```
+
+## 📈 **Analytics & Tracking**
+
+### Scan Metrics
+
+<Note>
+**Under Development**: Comprehensive analytics for scan success rates and user behavior.
+</Note>
+
+```typescript
+// Future analytics integration
+const trackScanEvent = async (eventData: {
+  scanMethod: 'camera' | 'upload';
+  success: boolean;
+  barcode?: string;
+  processingTime: number;
+  userId: string;
+}) => {
+  // Analytics implementation
+};
+```
+
+---
+
+<Warning>
+**Development Note**: This API is actively being developed as part of our hackathon project. While core barcode scanning functionality is operational, advanced features like multi-format detection and real-time processing are being implemented.
+</Warning>
+
+## 🔗 **Related APIs**
+
+- [AI Food Analysis](/api-reference/nutrilens/ai-analysis) - Computer vision food recognition
+- [Nutrition Data](/api-reference/nutrilens/nutrition-data) - Comprehensive nutrition information
+- [Health Insights](/api-reference/nutrilens/health-insights) - AI-powered health recommendations

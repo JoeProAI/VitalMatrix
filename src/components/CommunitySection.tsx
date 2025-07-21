@@ -44,6 +44,13 @@ const CommunitySection = () => {
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-electric-blue to-transparent opacity-50"></div>
       
       <div className="max-w-7xl mx-auto">
+        {/* DEMO DISCLAIMER - Very Prominent */}
+        <div className="text-center mb-8 p-4 bg-yellow-900/30 border-2 border-yellow-500/50 rounded-xl">
+          <p className="text-yellow-300 font-bold text-lg">
+            🚨 DEMO CONTENT: All reviews and testimonials shown are for demonstration purposes only and do not represent real users or experiences.
+          </p>
+        </div>
+        
         <div className="text-center mb-16">
           <div className="inline-block px-4 py-2 rounded-full bg-electric-blue/10 text-electric-blue text-sm font-medium mb-4">
             Community-Driven Healthcare
@@ -167,7 +174,13 @@ const CommunitySection = () => {
             </div>
             
             {/* Testimonials */}
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="mt-8">
+              <div className="text-center mb-6 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                <p className="text-sm text-yellow-400 font-medium">
+                  ⚠️ DEMO NOTICE: Reviews shown are for demonstration purposes and do not represent real users
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {testimonials.map((testimonial, i) => (
                 <div 
                   key={i} 
@@ -193,6 +206,7 @@ const CommunitySection = () => {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           </div>
         </div>

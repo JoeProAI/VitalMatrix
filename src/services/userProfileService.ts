@@ -166,7 +166,7 @@ export const addHealthcareVisit = async (visit: Omit<HealthcareVisit, 'id'>): Pr
     // Update user stats
     const userRef = doc(db, 'userProfiles', visit.userId);
     await updateDoc(userRef, {
-      'stats.totalFacilityVisits': (await getUserProfile(visit.userId))?.stats.totalFacilityVisits + 1 || 1,
+      'stats.totalFacilityVisits': ((await getUserProfile(visit.userId))?.stats?.totalFacilityVisits || 0) + 1,
     });
 
     return visitRef.id;
@@ -387,7 +387,7 @@ const generateRecommendations = (profile: UserProfile | null, visits: Healthcare
     recommendations.push('Try tracking your nutrition more regularly for better insights');
   }
   
-  if (profile && !profile.healthProfile.emergencyContact) {
+  if (profile && profile.healthProfile && !profile.healthProfile.emergencyContact) {
     recommendations.push('Add an emergency contact to your health profile');
   }
   

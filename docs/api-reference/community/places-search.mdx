@@ -1,0 +1,452 @@
+---
+title: "Healthcare Places Search API"
+description: "Real-time healthcare facility discovery and location intelligence"
+---
+
+# 🏥 Healthcare Places Search API
+
+The VitalMatrix Places Search API provides real-time healthcare facility discovery with comprehensive location intelligence and community-driven data.
+
+## 🏗️ **Development Status**
+
+<Warning>
+**Production Ready**: Core facility search is operational. Advanced features under active development.
+</Warning>
+
+### ✅ **Currently Available**
+- Real-time healthcare facility search
+- Google Places API integration
+- Basic facility information
+- Location-based filtering
+
+### 🚧 **In Development**
+- Advanced facility categorization
+- Real-time availability data
+- Insurance network integration
+- Predictive wait time algorithms
+
+## 🌐 **Endpoints**
+
+### Search Healthcare Facilities
+
+```http
+GET /api/places/search
+```
+
+**Query Parameters:**
+```typescript
+{
+  lat: number;          // Latitude coordinate
+  lng: number;          // Longitude coordinate
+  radius: number;       // Search radius in meters (max: 50000)
+  type?: string;        // Facility type: 'hospital' | 'pharmacy' | 'clinic'
+  keyword?: string;     // Search keyword
+  minRating?: number;   // Minimum rating filter (1-5)
+  openNow?: boolean;    // Only open facilities
+}
+```
+
+**Example Request:**
+```http
+GET /api/places/search?lat=40.7128&lng=-74.0060&radius=10000&type=hospital&minRating=4.0
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "facilities": [
+    {
+      "id": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+      "name": "Mount Sinai Hospital",
+      "address": "1 Gustave L. Levy Pl, New York, NY 10029",
+      "location": {
+        "lat": 40.7903,
+        "lng": -73.9527
+      },
+      "rating": 4.2,
+      "totalReviews": 1247,
+      "facilityType": "hospital",
+      "phoneNumber": "+1 212-241-6500",
+      "website": "https://www.mountsinai.org",
+      "openingHours": {
+        "isOpen": true,
+        "periods": [
+          {
+            "open": { "day": 0, "time": "0000" },
+            "close": { "day": 0, "time": "2359" }
+          }
+        ]
+      },
+      "services": [
+        "Emergency Care",
+        "Cardiology",
+        "Oncology",
+        "Pediatrics"
+      ],
+      "photos": [
+        "https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=..."
+      ],
+      "distance": 2.4,
+      "waitTime": {
+        "estimated": 45,
+        "lastUpdated": "2024-07-20T19:30:00Z",
+        "confidence": "medium"
+      }
+    }
+  ],
+  "pagination": {
+    "total": 156,
+    "page": 1,
+    "limit": 20,
+    "hasMore": true,
+    "nextPageToken": "CmRaAAAA..."
+  }
+}
+```
+
+### Search by Text Query
+
+```http
+GET /api/places/search/text
+```
+
+**Query Parameters:**
+```typescript
+{
+  query: string;        // Text search query
+  location?: string;    // Location bias (e.g., "New York, NY")
+  radius?: number;      // Search radius in meters
+  type?: string;        // Facility type filter
+}
+```
+
+**Example Request:**
+```http
+GET /api/places/search/text?query=pediatric%20clinic%20manhattan&radius=5000
+```
+
+## 🛠️ **Client-Side Integration**
+
+### JavaScript/TypeScript Example
+
+```typescript
+interface SearchParams {
+  lat: number;
+  lng: number;
+  radius: number;
+  type?: 'hospital' | 'pharmacy' | 'clinic';
+  minRating?: number;
+}
+
+const searchHealthcareFacilities = async (params: SearchParams) => {
+  const queryString = new URLSearchParams({
+    lat: params.lat.toString(),
+    lng: params.lng.toString(),
+    radius: params.radius.toString(),
+    ...(params.type && { type: params.type }),
+    ...(params.minRating && { minRating: params.minRating.toString() })
+  });
+
+  const response = await fetch(`/api/places/search?${queryString}`, {
+    headers: {
+      'Authorization': `Bearer ${userToken}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Search failed: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+// Usage example
+const findNearbyHospitals = async (userLocation: { lat: number; lng: number }) => {
+  try {
+    const facilities = await searchHealthcareFacilities({
+      lat: userLocation.lat,
+      lng: userLocation.lng,
+      radius: 10000, // 10km
+      type: 'hospital',
+      minRating: 3.5
+    });
+    
+    return facilities;
+  } catch (error) {
+    console.error('Failed to find hospitals:', error);
+    throw error;
+  }
+};
+```
+
+### React Hook Example
+
+```tsx
+import { useState, useEffect } from 'react';
+
+interface UseHealthcareFacilitiesProps {
+  userLocation: { lat: number; lng: number } | null;
+  facilityType: 'hospital' | 'pharmacy' | 'clinic';
+  radius: number;
+}
+
+const useHealthcareFacilities = ({
+  userLocation,
+  facilityType,
+  radius
+}: UseHealthcareFacilitiesProps) => {
+  const [facilities, setFacilities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!userLocation) return;
+
+    const searchFacilities = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const result = await searchHealthcareFacilities({
+          lat: userLocation.lat,
+          lng: userLocation.lng,
+          radius,
+          type: facilityType
+        });
+        
+        setFacilities(result.facilities);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    searchFacilities();
+  }, [userLocation, facilityType, radius]);
+
+  return { facilities, loading, error };
+};
+```
+
+## 🗺️ **Geolocation Integration**
+
+### Get User Location
+
+```typescript
+const getUserLocation = (): Promise<{ lat: number; lng: number }> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation not supported'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      },
+      (error) => {
+        reject(new Error(`Location access denied: ${error.message}`));
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
+  });
+};
+```
+
+### Location-Based Search
+
+```typescript
+const searchNearbyFacilities = async (facilityType: string) => {
+  try {
+    // Get user's current location
+    const location = await getUserLocation();
+    
+    // Search for facilities
+    const facilities = await searchHealthcareFacilities({
+      lat: location.lat,
+      lng: location.lng,
+      radius: 15000, // 15km radius
+      type: facilityType,
+      minRating: 3.0
+    });
+    
+    return facilities;
+  } catch (error) {
+    // Fallback to default location (e.g., city center)
+    console.warn('Using fallback location:', error);
+    
+    return searchHealthcareFacilities({
+      lat: 40.7128, // NYC coordinates
+      lng: -74.0060,
+      radius: 25000,
+      type: facilityType
+    });
+  }
+};
+```
+
+## 🔍 **Advanced Filtering**
+
+### Facility Types
+
+```typescript
+enum FacilityType {
+  HOSPITAL = 'hospital',
+  CLINIC = 'clinic', 
+  PHARMACY = 'pharmacy',
+  URGENT_CARE = 'urgent_care',
+  SPECIALIST = 'specialist',
+  DENTAL = 'dental',
+  VISION = 'vision',
+  MENTAL_HEALTH = 'mental_health'
+}
+```
+
+### Service Categories
+
+<Info>
+**Under Development**: Advanced service categorization and specialty filtering.
+</Info>
+
+```typescript
+// Future implementation
+interface ServiceFilter {
+  emergency: boolean;
+  pediatrics: boolean;
+  cardiology: boolean;
+  oncology: boolean;
+  orthopedics: boolean;
+  neurology: boolean;
+  // ... more specialties
+}
+```
+
+## 📊 **Response Data Structure**
+
+### Facility Object
+
+```typescript
+interface HealthcareFacility {
+  id: string;                    // Google Place ID
+  name: string;                  // Facility name
+  address: string;               // Full address
+  location: {
+    lat: number;
+    lng: number;
+  };
+  rating: number;                // Google rating (1-5)
+  totalReviews: number;          // Total review count
+  facilityType: FacilityType;    // Facility category
+  phoneNumber?: string;          // Contact number
+  website?: string;              // Official website
+  openingHours?: OpeningHours;   // Operating hours
+  services: string[];            // Available services
+  photos: string[];              // Facility photos
+  distance: number;              // Distance from search point (km)
+  waitTime?: WaitTimeInfo;       // Real-time wait information
+  insurance?: InsuranceInfo;     // Accepted insurance (future)
+}
+```
+
+### Wait Time Information
+
+```typescript
+interface WaitTimeInfo {
+  estimated: number;             // Estimated wait in minutes
+  lastUpdated: string;           // ISO timestamp
+  confidence: 'low' | 'medium' | 'high';
+  source: 'community' | 'official' | 'predicted';
+}
+```
+
+## ⚡ **Performance Optimization**
+
+### Caching Strategy
+
+```typescript
+// Client-side caching example
+class FacilityCache {
+  private cache = new Map();
+  private readonly TTL = 5 * 60 * 1000; // 5 minutes
+
+  async get(key: string) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.TTL) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  set(key: string, data: any) {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+  }
+}
+```
+
+### Debounced Search
+
+```typescript
+import { debounce } from 'lodash';
+
+const debouncedSearch = debounce(async (query: string) => {
+  const results = await searchHealthcareFacilities({
+    query,
+    radius: 10000
+  });
+  
+  // Update UI with results
+  setSearchResults(results);
+}, 300);
+```
+
+## 🚨 **Error Handling**
+
+### Error Codes
+
+| Code | Description | Action |
+|------|-------------|--------|
+| `LOCATION_REQUIRED` | Location parameters missing | Provide lat/lng coordinates |
+| `INVALID_RADIUS` | Radius exceeds maximum | Use radius ≤ 50000 meters |
+| `RATE_LIMIT_EXCEEDED` | Too many requests | Implement rate limiting |
+| `SERVICE_UNAVAILABLE` | Google Places API error | Retry with exponential backoff |
+
+### Error Response Format
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_RADIUS",
+    "message": "Search radius cannot exceed 50000 meters",
+    "details": {
+      "maxRadius": 50000,
+      "providedRadius": 75000
+    }
+  }
+}
+```
+
+---
+
+<Note>
+**Daytona Deployment**: This API will be fully available when the VitalMatrix backend is deployed to Daytona cloud infrastructure. Current implementation uses serverless functions for development.
+</Note>
+
+## 🔗 **Related APIs**
+
+- [Facility Details](/api-reference/community/facility-details) - Detailed facility information
+- [Reviews System](/api-reference/community/reviews) - Community reviews and ratings
+- [Wait Times](/api-reference/community/wait-times) - Real-time wait time tracking

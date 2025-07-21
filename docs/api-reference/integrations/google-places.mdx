@@ -1,0 +1,889 @@
+---
+title: "Google Places API Integration"
+description: "Healthcare facility discovery and location services for Community Pulse"
+---
+
+# 🗺️ Google Places API Integration
+
+VitalMatrix integrates with Google Places API to provide comprehensive healthcare facility discovery, location services, and real-time facility information for the Community Pulse feature.
+
+## 🏗️ **Production Status**
+
+<Check>
+**Production Ready**: Google Places integration is fully operational with 57+ healthcare facilities loaded.
+</Check>
+
+### ✅ **Live Features**
+- Healthcare facility search (hospitals, pharmacies, clinics)
+- Real-time location-based discovery
+- Facility details and contact information
+- Interactive Google Maps integration
+- Geolocation services for user positioning
+
+## 🏥 **Healthcare Facility Discovery**
+
+### Supported Facility Types
+
+```typescript
+// Facility types supported by VitalMatrix
+export const HEALTHCARE_FACILITY_TYPES = {
+  hospital: 'hospital',
+  pharmacy: 'pharmacy', 
+  clinic: 'doctor',
+  dentist: 'dentist',
+  veterinary: 'veterinary_care',
+  physiotherapy: 'physiotherapist'
+} as const;
+
+export type FacilityType = keyof typeof HEALTHCARE_FACILITY_TYPES;
+
+interface HealthcareFacility {
+  place_id: string;
+  name: string;
+  vicinity: string;
+  types: string[];
+  geometry: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+  };
+  rating?: number;
+  user_ratings_total?: number;
+  opening_hours?: {
+    open_now: boolean;
+    weekday_text: string[];
+  };
+  formatted_phone_number?: string;
+  website?: string;
+  photos?: Array<{
+    photo_reference: string;
+    height: number;
+    width: number;
+  }>;
+}
+```
+
+### Places API Service
+
+```typescript
+// googlePlacesService.ts
+export class GooglePlacesService {
+  private apiKey: string;
+  private baseUrl = 'https://maps.googleapis.com/maps/api/place';
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  // Search for healthcare facilities near a location
+  async searchNearbyFacilities(
+    lat: number,
+    lng: number,
+    radius: number = 10000,
+    type: FacilityType = 'hospital'
+  ): Promise<HealthcareFacility[]> {
+    const url = `${this.baseUrl}/nearbysearch/json`;
+    const params = new URLSearchParams({
+      location: `${lat},${lng}`,
+      radius: radius.toString(),
+      type: HEALTHCARE_FACILITY_TYPES[type],
+      key: this.apiKey
+    });
+
+    try {
+      const response = await fetch(`${url}?${params}`);
+      const data = await response.json();
+
+      if (data.status !== 'OK') {
+        throw new Error(`Places API error: ${data.status}`);
+      }
+
+      return data.results.map(this.transformPlaceResult);
+    } catch (error) {
+      console.error('Error searching facilities:', error);
+      throw error;
+    }
+  }
+
+  // Get detailed facility information
+  async getFacilityDetails(placeId: string): Promise<HealthcareFacility> {
+    const url = `${this.baseUrl}/details/json`;
+    const params = new URLSearchParams({
+      place_id: placeId,
+      fields: 'name,vicinity,geometry,rating,user_ratings_total,opening_hours,formatted_phone_number,website,photos,types',
+      key: this.apiKey
+    });
+
+    try {
+      const response = await fetch(`${url}?${params}`);
+      const data = await response.json();
+
+      if (data.status !== 'OK') {
+        throw new Error(`Places API error: ${data.status}`);
+      }
+
+      return this.transformPlaceResult(data.result);
+    } catch (error) {
+      console.error('Error getting facility details:', error);
+      throw error;
+    }
+  }
+
+  // Transform Google Places API response to VitalMatrix format
+  private transformPlaceResult(place: any): HealthcareFacility {
+    return {
+      place_id: place.place_id,
+      name: place.name,
+      vicinity: place.vicinity || place.formatted_address,
+      types: place.types || [],
+      geometry: {
+        location: {
+          lat: place.geometry.location.lat,
+          lng: place.geometry.location.lng
+        }
+      },
+      rating: place.rating,
+      user_ratings_total: place.user_ratings_total,
+      opening_hours: place.opening_hours,
+      formatted_phone_number: place.formatted_phone_number,
+      website: place.website,
+      photos: place.photos
+    };
+  }
+
+  // Search facilities by text query
+  async searchFacilitiesByText(
+    query: string,
+    lat?: number,
+    lng?: number,
+    radius?: number
+  ): Promise<HealthcareFacility[]> {
+    const url = `${this.baseUrl}/textsearch/json`;
+    const params = new URLSearchParams({
+      query: `${query} healthcare`,
+      key: this.apiKey
+    });
+
+    if (lat && lng) {
+      params.append('location', `${lat},${lng}`);
+      if (radius) {
+        params.append('radius', radius.toString());
+      }
+    }
+
+    try {
+      const response = await fetch(`${url}?${params}`);
+      const data = await response.json();
+
+      if (data.status !== 'OK') {
+        throw new Error(`Places API error: ${data.status}`);
+      }
+
+      return data.results.map(this.transformPlaceResult);
+    } catch (error) {
+      console.error('Error searching facilities by text:', error);
+      throw error;
+    }
+  }
+}
+```
+
+## 🌐 **Serverless API Proxy**
+
+### Vercel API Functions
+
+```typescript
+// api/places/search.ts - Vercel serverless function
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const { lat, lng, radius = '10000', type = 'hospital' } = req.query;
+
+    if (!lat || !lng) {
+      res.status(400).json({ error: 'Latitude and longitude are required' });
+      return;
+    }
+
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: 'Google Places API key not configured' });
+      return;
+    }
+
+    // Call Google Places API
+    const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json`;
+    const params = new URLSearchParams({
+      location: `${lat},${lng}`,
+      radius: radius as string,
+      type: type as string,
+      key: apiKey
+    });
+
+    const response = await fetch(`${placesUrl}?${params}`);
+    const data = await response.json();
+
+    if (data.status !== 'OK') {
+      console.error('Google Places API error:', data);
+      res.status(500).json({ 
+        error: 'Failed to fetch places data',
+        details: data.error_message 
+      });
+      return;
+    }
+
+    // Transform and filter results
+    const facilities = data.results
+      .filter((place: any) => place.business_status === 'OPERATIONAL')
+      .map((place: any) => ({
+        place_id: place.place_id,
+        name: place.name,
+        vicinity: place.vicinity,
+        types: place.types,
+        geometry: place.geometry,
+        rating: place.rating,
+        user_ratings_total: place.user_ratings_total,
+        opening_hours: place.opening_hours,
+        photos: place.photos?.slice(0, 3) // Limit photos for performance
+      }));
+
+    res.status(200).json({
+      status: 'OK',
+      results: facilities,
+      count: facilities.length
+    });
+
+  } catch (error) {
+    console.error('API error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+```
+
+### Facility Details API
+
+```typescript
+// api/places/details.ts
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const { place_id } = req.query;
+
+    if (!place_id) {
+      res.status(400).json({ error: 'Place ID is required' });
+      return;
+    }
+
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: 'Google Places API key not configured' });
+      return;
+    }
+
+    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json`;
+    const params = new URLSearchParams({
+      place_id: place_id as string,
+      fields: 'name,vicinity,geometry,rating,user_ratings_total,opening_hours,formatted_phone_number,website,photos,types,reviews',
+      key: apiKey
+    });
+
+    const response = await fetch(`${detailsUrl}?${params}`);
+    const data = await response.json();
+
+    if (data.status !== 'OK') {
+      res.status(500).json({ 
+        error: 'Failed to fetch place details',
+        details: data.error_message 
+      });
+      return;
+    }
+
+    res.status(200).json({
+      status: 'OK',
+      result: data.result
+    });
+
+  } catch (error) {
+    console.error('Details API error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+```
+
+## 🗺️ **Google Maps Integration**
+
+### Interactive Map Component
+
+```typescript
+// GoogleMapComponent.tsx
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
+
+interface GoogleMapComponentProps {
+  facilities: HealthcareFacility[];
+  userLocation: { lat: number; lng: number };
+  onFacilityClick: (facility: HealthcareFacility) => void;
+  selectedFacility: HealthcareFacility | null;
+}
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '400px'
+};
+
+const mapOptions = {
+  disableDefaultUI: false,
+  zoomControl: true,
+  streetViewControl: false,
+  mapTypeControl: false,
+  fullscreenControl: true
+};
+
+export const GoogleMapComponent: React.FC<GoogleMapComponentProps> = ({
+  facilities,
+  userLocation,
+  onFacilityClick,
+  selectedFacility
+}) => {
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+
+  const onLoad = useCallback((map: google.maps.Map) => {
+    setMap(map);
+  }, []);
+
+  const onUnmount = useCallback(() => {
+    setMap(null);
+  }, []);
+
+  // Custom marker icons for different facility types
+  const getMarkerIcon = (types: string[]) => {
+    if (types.includes('hospital')) {
+      return {
+        url: '/icons/hospital-marker.png',
+        scaledSize: new google.maps.Size(32, 32)
+      };
+    }
+    if (types.includes('pharmacy')) {
+      return {
+        url: '/icons/pharmacy-marker.png',
+        scaledSize: new google.maps.Size(32, 32)
+      };
+    }
+    return {
+      url: '/icons/clinic-marker.png',
+      scaledSize: new google.maps.Size(32, 32)
+    };
+  };
+
+  return (
+    <LoadScript googleMapsApiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY!}>
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={userLocation}
+        zoom={13}
+        options={mapOptions}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+      >
+        {/* User location marker */}
+        <Marker
+          position={userLocation}
+          icon={{
+            url: '/icons/user-location.png',
+            scaledSize: new google.maps.Size(24, 24)
+          }}
+          title="Your Location"
+        />
+
+        {/* Facility markers */}
+        {facilities.map((facility) => (
+          <Marker
+            key={facility.place_id}
+            position={facility.geometry.location}
+            icon={getMarkerIcon(facility.types)}
+            title={facility.name}
+            onClick={() => onFacilityClick(facility)}
+          />
+        ))}
+
+        {/* Info window for selected facility */}
+        {selectedFacility && (
+          <InfoWindow
+            position={selectedFacility.geometry.location}
+            onCloseClick={() => onFacilityClick(null)}
+          >
+            <div className="p-3 max-w-xs">
+              <h3 className="font-semibold text-lg mb-2">
+                {selectedFacility.name}
+              </h3>
+              <p className="text-gray-600 mb-2">
+                {selectedFacility.vicinity}
+              </p>
+              {selectedFacility.rating && (
+                <div className="flex items-center mb-2">
+                  <span className="text-yellow-500">★</span>
+                  <span className="ml-1">
+                    {selectedFacility.rating} ({selectedFacility.user_ratings_total} reviews)
+                  </span>
+                </div>
+              )}
+              {selectedFacility.opening_hours && (
+                <p className={`text-sm ${
+                  selectedFacility.opening_hours.open_now 
+                    ? 'text-green-600' 
+                    : 'text-red-600'
+                }`}>
+                  {selectedFacility.opening_hours.open_now ? 'Open Now' : 'Closed'}
+                </p>
+              )}
+            </div>
+          </InfoWindow>
+        )}
+      </GoogleMap>
+    </LoadScript>
+  );
+};
+```
+
+### Geolocation Service
+
+```typescript
+// geolocationService.ts
+export interface UserLocation {
+  lat: number;
+  lng: number;
+  accuracy: number;
+}
+
+export class GeolocationService {
+  static async getCurrentPosition(): Promise<UserLocation> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by this browser'));
+        return;
+      }
+
+      const options: PositionOptions = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          });
+        },
+        (error) => {
+          let errorMessage = 'Failed to get location';
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location access denied by user';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information unavailable';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out';
+              break;
+          }
+          
+          reject(new Error(errorMessage));
+        },
+        options
+      );
+    });
+  }
+
+  static async watchPosition(callback: (location: UserLocation) => void): Promise<number> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported'));
+        return;
+      }
+
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          callback({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          });
+        },
+        (error) => {
+          console.error('Geolocation watch error:', error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000 // 1 minute
+        }
+      );
+
+      resolve(watchId);
+    });
+  }
+
+  static clearWatch(watchId: number): void {
+    navigator.geolocation.clearWatch(watchId);
+  }
+}
+```
+
+## 🏥 **Community Pulse Integration**
+
+### Facility Loading and Management
+
+```typescript
+// CommunityPulse.tsx integration
+export const CommunityPulse: React.FC = () => {
+  const [facilities, setFacilities] = useState<HealthcareFacility[]>([]);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load user location and nearby facilities
+  useEffect(() => {
+    loadUserLocationAndFacilities();
+  }, []);
+
+  const loadUserLocationAndFacilities = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get user's current location
+      const location = await GeolocationService.getCurrentPosition();
+      setUserLocation(location);
+
+      // Load nearby healthcare facilities
+      await loadNearbyFacilities(location.lat, location.lng);
+
+    } catch (error) {
+      console.error('Error loading location and facilities:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load facilities');
+      
+      // Fallback to default location (NYC) if geolocation fails
+      const fallbackLocation = { lat: 40.7128, lng: -74.0060, accuracy: 0 };
+      setUserLocation(fallbackLocation);
+      await loadNearbyFacilities(fallbackLocation.lat, fallbackLocation.lng);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadNearbyFacilities = async (lat: number, lng: number) => {
+    try {
+      // Load different types of healthcare facilities
+      const [hospitals, pharmacies, clinics] = await Promise.all([
+        loadFacilitiesByType(lat, lng, 'hospital'),
+        loadFacilitiesByType(lat, lng, 'pharmacy'),
+        loadFacilitiesByType(lat, lng, 'doctor')
+      ]);
+
+      // Combine and deduplicate facilities
+      const allFacilities = [...hospitals, ...pharmacies, ...clinics];
+      const uniqueFacilities = allFacilities.filter((facility, index, array) => 
+        array.findIndex(f => f.place_id === facility.place_id) === index
+      );
+
+      setFacilities(uniqueFacilities);
+      console.log(`Loaded ${uniqueFacilities.length} healthcare facilities`);
+
+    } catch (error) {
+      console.error('Error loading facilities:', error);
+      throw error;
+    }
+  };
+
+  const loadFacilitiesByType = async (
+    lat: number, 
+    lng: number, 
+    type: string
+  ): Promise<HealthcareFacility[]> => {
+    const response = await fetch(
+      `/api/places/search?lat=${lat}&lng=${lng}&radius=10000&type=${type}`
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Failed to load ${type} facilities`);
+    }
+    
+    const data = await response.json();
+    return data.results || [];
+  };
+
+  // Rest of component implementation...
+};
+```
+
+### Facility Data Synchronization
+
+```typescript
+// facilitySync.service.ts
+export class FacilitySyncService {
+  private db = getFirestore();
+
+  // Sync Google Places data with Firestore
+  async syncFacilityData(facilities: HealthcareFacility[]) {
+    const batch = writeBatch(this.db);
+    
+    for (const facility of facilities) {
+      const facilityRef = doc(this.db, 'facilities', facility.place_id);
+      
+      // Check if facility already exists
+      const existingFacility = await getDoc(facilityRef);
+      
+      if (!existingFacility.exists()) {
+        // Add new facility
+        batch.set(facilityRef, {
+          ...facility,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          reviewCount: 0,
+          averageRating: 0,
+          averageWaitTime: 0
+        });
+      } else {
+        // Update existing facility with latest Google Places data
+        batch.update(facilityRef, {
+          name: facility.name,
+          vicinity: facility.vicinity,
+          rating: facility.rating,
+          user_ratings_total: facility.user_ratings_total,
+          opening_hours: facility.opening_hours,
+          updatedAt: Timestamp.now()
+        });
+      }
+    }
+
+    await batch.commit();
+    console.log(`Synced ${facilities.length} facilities to Firestore`);
+  }
+
+  // Get enhanced facility data (Google Places + VitalMatrix reviews)
+  async getEnhancedFacilityData(placeId: string) {
+    const [googleData, vitalMatrixData] = await Promise.all([
+      this.getGooglePlacesData(placeId),
+      this.getVitalMatrixData(placeId)
+    ]);
+
+    return {
+      ...googleData,
+      vitalMatrixReviews: vitalMatrixData.reviews,
+      vitalMatrixRating: vitalMatrixData.averageRating,
+      currentWaitTime: vitalMatrixData.currentWaitTime,
+      crowdingLevel: vitalMatrixData.crowdingLevel
+    };
+  }
+
+  private async getGooglePlacesData(placeId: string) {
+    const response = await fetch(`/api/places/details?place_id=${placeId}`);
+    const data = await response.json();
+    return data.result;
+  }
+
+  private async getVitalMatrixData(placeId: string) {
+    const facilityRef = doc(this.db, 'facilities', placeId);
+    const facilitySnap = await getDoc(facilityRef);
+    
+    if (!facilitySnap.exists()) {
+      return {
+        reviews: [],
+        averageRating: 0,
+        currentWaitTime: 0,
+        crowdingLevel: 'unknown'
+      };
+    }
+
+    return facilitySnap.data();
+  }
+}
+```
+
+## 🔧 **Configuration & Environment**
+
+### Environment Variables
+
+```bash
+# .env.local
+REACT_APP_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+REACT_APP_GOOGLE_PLACES_API_KEY=your_google_places_api_key
+
+# Vercel environment variables
+GOOGLE_PLACES_API_KEY=your_server_side_api_key
+GOOGLE_MAPS_API_KEY=your_server_side_api_key
+```
+
+### API Key Configuration
+
+```typescript
+// config/googleMaps.config.ts
+interface GoogleMapsConfig {
+  apiKey: string;
+  libraries: string[];
+  region: string;
+  language: string;
+}
+
+export const googleMapsConfig: GoogleMapsConfig = {
+  apiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY!,
+  libraries: ['places', 'geometry'],
+  region: 'US',
+  language: 'en'
+};
+
+// Validate API key configuration
+export const validateGoogleMapsConfig = (): boolean => {
+  if (!googleMapsConfig.apiKey) {
+    console.error('Google Maps API key is not configured');
+    return false;
+  }
+  
+  if (googleMapsConfig.apiKey.includes('your_api_key')) {
+    console.error('Google Maps API key is not properly set');
+    return false;
+  }
+  
+  return true;
+};
+```
+
+## 📊 **Performance Optimization**
+
+### Caching Strategy
+
+```typescript
+// placesCache.service.ts
+export class PlacesCacheService {
+  private cache = new Map<string, { data: any; timestamp: number }>();
+  private readonly CACHE_DURATION = 300000; // 5 minutes
+
+  // Cache facility search results
+  setCachedFacilities(key: string, facilities: HealthcareFacility[]) {
+    this.cache.set(key, {
+      data: facilities,
+      timestamp: Date.now()
+    });
+  }
+
+  getCachedFacilities(key: string): HealthcareFacility[] | null {
+    const cached = this.cache.get(key);
+    
+    if (!cached) return null;
+    
+    // Check if cache is still valid
+    if (Date.now() - cached.timestamp > this.CACHE_DURATION) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return cached.data;
+  }
+
+  // Generate cache key based on location and search parameters
+  generateCacheKey(lat: number, lng: number, radius: number, type: string): string {
+    return `facilities_${lat.toFixed(4)}_${lng.toFixed(4)}_${radius}_${type}`;
+  }
+
+  // Clear expired cache entries
+  clearExpiredCache() {
+    const now = Date.now();
+    for (const [key, value] of this.cache.entries()) {
+      if (now - value.timestamp > this.CACHE_DURATION) {
+        this.cache.delete(key);
+      }
+    }
+  }
+}
+```
+
+### Rate Limiting
+
+```typescript
+// rateLimiter.service.ts
+export class RateLimiterService {
+  private requests = new Map<string, number[]>();
+  private readonly MAX_REQUESTS_PER_MINUTE = 60;
+
+  canMakeRequest(clientId: string): boolean {
+    const now = Date.now();
+    const clientRequests = this.requests.get(clientId) || [];
+    
+    // Remove requests older than 1 minute
+    const recentRequests = clientRequests.filter(
+      timestamp => now - timestamp < 60000
+    );
+    
+    if (recentRequests.length >= this.MAX_REQUESTS_PER_MINUTE) {
+      return false;
+    }
+    
+    // Add current request
+    recentRequests.push(now);
+    this.requests.set(clientId, recentRequests);
+    
+    return true;
+  }
+
+  getRemainingRequests(clientId: string): number {
+    const clientRequests = this.requests.get(clientId) || [];
+    const recentRequests = clientRequests.filter(
+      timestamp => Date.now() - timestamp < 60000
+    );
+    
+    return Math.max(0, this.MAX_REQUESTS_PER_MINUTE - recentRequests.length);
+  }
+}
+```
+
+---
+
+<Note>
+**Production Status**: Google Places integration is fully operational with 57+ healthcare facilities loaded and real-time location services active.
+</Note>
+
+## 🔗 **Related Documentation**
+
+- [Community Pulse API](/api-reference/community/places-search) - Healthcare facility search
+- [Firebase Integration](/api-reference/integrations/firebase) - Database and authentication
+- [API Overview](/api-reference/overview) - Complete API reference
+- [Authentication](/api-reference/authentication) - Security implementation

@@ -33,6 +33,10 @@ export default {
         'float-slow': 'float-slow 6s ease-in-out infinite',
         'slide-up': 'slide-up 0.6s ease-out',
         'pulse-soft': 'pulse-soft 3s ease-in-out infinite',
+        'float': 'float 4s ease-in-out infinite',
+        'spin-slow': 'spin 8s linear infinite',
+        'pulse-gentle': 'pulse-gentle 4s ease-in-out infinite',
+        'bounce-gentle': 'bounce-gentle 3s ease-in-out infinite',
       },
       keyframes: {
         'float-slow': {
@@ -46,6 +50,19 @@ export default {
         'pulse-soft': {
           '0%, 100%': { opacity: '0.4' },
           '50%': { opacity: '0.8' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+          '33%': { transform: 'translateY(-10px) rotate(1deg)' },
+          '66%': { transform: 'translateY(5px) rotate(-1deg)' },
+        },
+        'pulse-gentle': {
+          '0%, 100%': { opacity: '0.2', transform: 'scale(1)' },
+          '50%': { opacity: '0.4', transform: 'scale(1.05)' },
+        },
+        'bounce-gentle': {
+          '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+          '50%': { transform: 'translateY(-8px) rotate(2deg)' },
         },
       },
       clipPath: {

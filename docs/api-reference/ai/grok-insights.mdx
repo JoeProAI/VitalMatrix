@@ -1,0 +1,453 @@
+---
+title: "Grok AI Insights API"
+description: "Advanced AI-powered health pattern recognition and personalized recommendations"
+---
+
+# 🤖 Grok AI Insights API
+
+The VitalMatrix Grok AI Insights API provides advanced artificial intelligence-powered health pattern recognition, behavioral analysis, and personalized recommendations based on user nutrition and health data.
+
+## 🏗️ **Development Status**
+
+<Warning>
+**Recently Deployed**: Grok AI integration was just deployed to production. Advanced features are being refined and optimized.
+</Warning>
+
+### ✅ **Currently Available**
+- Basic AI insight generation
+- Macro balance analysis
+- Processed food detection
+- Health score trend analysis
+
+### 🚧 **Under Active Development**
+- Advanced pattern recognition algorithms
+- Predictive health modeling
+- Personalized meal planning AI
+- Real-time recommendation engine
+
+## 🧠 **AI Capabilities**
+
+### Pattern Recognition
+- **Meal Timing Analysis**: Detect late-night eating patterns and circadian rhythm disruptions
+- **Food Variety Assessment**: Analyze dietary diversity and recommend improvements
+- **Nutritional Gap Detection**: Identify missing nutrients and suggest targeted foods
+- **Behavioral Trend Analysis**: Track long-term health behavior changes
+
+### Personalized Recommendations
+- **Smart Food Swaps**: AI-suggested healthier alternatives based on current choices
+- **Meal Planning Strategies**: Personalized nutrition strategies (portion control vs. nutrient density)
+- **Health Optimization Tips**: Progressive recommendations from basic to advanced levels
+- **Allergen-Aware Suggestions**: Recommendations that respect user allergies and restrictions
+
+## 🌐 **Endpoints**
+
+### Generate Health Insights
+
+```http
+POST /api/ai/generate-insights
+```
+
+**Request Body:**
+```json
+{
+  "userId": "firebase_user_id",
+  "analysisType": "comprehensive" | "nutrition" | "patterns" | "recommendations",
+  "timeframe": "week" | "month" | "quarter",
+  "includeGrokAI": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "insights": [
+    {
+      "id": "insight_123",
+      "type": "recommendation",
+      "title": "🤖 Grok AI: Macro Balance Analysis",
+      "description": "Grok AI detected low protein intake (12.3%). Optimal protein supports muscle health and satiety.",
+      "severity": "medium",
+      "actionItems": [
+        "Add lean proteins like chicken, fish, or legumes to meals",
+        "Consider protein-rich snacks like Greek yogurt or nuts"
+      ],
+      "relatedScans": ["scan_456", "scan_789"],
+      "generatedAt": "2024-07-20T19:45:00Z",
+      "confidence": 0.87,
+      "aiModel": "grok-nutrition-v1.2"
+    },
+    {
+      "id": "insight_124",
+      "type": "warning",
+      "title": "🤖 Grok AI: Processed Food Alert",
+      "description": "Grok AI detected 67.3% of your scanned foods contain processed ingredients. Whole foods provide better nutrition.",
+      "severity": "high",
+      "actionItems": [
+        "Choose whole, unprocessed foods when possible",
+        "Read ingredient lists and avoid items with many additives",
+        "Focus on fresh fruits, vegetables, and lean proteins"
+      ],
+      "relatedScans": ["scan_101", "scan_102"],
+      "generatedAt": "2024-07-20T19:45:00Z",
+      "confidence": 0.93,
+      "aiModel": "grok-ingredient-v1.0"
+    }
+  ],
+  "summary": {
+    "totalInsights": 2,
+    "severityBreakdown": {
+      "low": 0,
+      "medium": 1,
+      "high": 1
+    },
+    "categories": ["nutrition", "food_quality"],
+    "processingTime": 1.23
+  }
+}
+```
+
+### Get Pattern Analysis
+
+```http
+GET /api/ai/patterns/{userId}
+```
+
+**Query Parameters:**
+```typescript
+{
+  timeframe?: string;     // 'week' | 'month' | 'quarter'
+  patternType?: string;   // 'timing' | 'variety' | 'quality' | 'all'
+  minConfidence?: number; // Minimum confidence threshold (0-1)
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "patterns": {
+    "mealTiming": {
+      "lateNightEating": {
+        "percentage": 23.4,
+        "frequency": "3-4 times per week",
+        "recommendation": "Try to finish eating 2-3 hours before bedtime",
+        "confidence": 0.89
+      }
+    },
+    "foodVariety": {
+      "dominantCategory": "processed_foods",
+      "categoryPercentage": 45.2,
+      "diversityScore": 6.7,
+      "recommendation": "Explore foods from different categories",
+      "confidence": 0.76
+    },
+    "nutritionalGaps": {
+      "fiber": {
+        "averageIntake": 12.3,
+        "recommendedIntake": 25,
+        "gapPercentage": 50.8,
+        "suggestion": "Add more fruits, vegetables, and whole grains"
+      }
+    }
+  }
+}
+```
+
+## 🛠️ **Client-Side Integration**
+
+### TypeScript SDK Example
+
+```typescript
+interface GrokInsightsClient {
+  generateInsights(params: InsightParams): Promise<InsightResponse>;
+  getPatterns(userId: string, options?: PatternOptions): Promise<PatternResponse>;
+  getRecommendations(userId: string, context?: RecommendationContext): Promise<RecommendationResponse>;
+}
+
+class VitalMatrixAI implements GrokInsightsClient {
+  private apiKey: string;
+  private baseUrl: string;
+
+  constructor(apiKey: string, baseUrl = '/api/ai') {
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
+  }
+
+  async generateInsights(params: InsightParams): Promise<InsightResponse> {
+    const response = await fetch(`${this.baseUrl}/generate-insights`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(params)
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI insights generation failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async getPatterns(userId: string, options?: PatternOptions): Promise<PatternResponse> {
+    const queryParams = new URLSearchParams({
+      ...(options?.timeframe && { timeframe: options.timeframe }),
+      ...(options?.patternType && { patternType: options.patternType }),
+      ...(options?.minConfidence && { minConfidence: options.minConfidence.toString() })
+    });
+
+    const response = await fetch(`${this.baseUrl}/patterns/${userId}?${queryParams}`, {
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`
+      }
+    });
+
+    return response.json();
+  }
+}
+
+// Usage example
+const aiClient = new VitalMatrixAI(userToken);
+
+const getPersonalizedInsights = async (userId: string) => {
+  try {
+    const insights = await aiClient.generateInsights({
+      userId,
+      analysisType: 'comprehensive',
+      timeframe: 'month',
+      includeGrokAI: true
+    });
+
+    return insights;
+  } catch (error) {
+    console.error('Failed to generate insights:', error);
+    throw error;
+  }
+};
+```
+
+### React Hook for AI Insights
+
+```tsx
+import { useState, useEffect } from 'react';
+
+interface UseGrokInsightsProps {
+  userId: string;
+  autoRefresh?: boolean;
+  refreshInterval?: number;
+}
+
+const useGrokInsights = ({ 
+  userId, 
+  autoRefresh = false, 
+  refreshInterval = 300000 // 5 minutes
+}: UseGrokInsightsProps) => {
+  const [insights, setInsights] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const generateInsights = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const aiClient = new VitalMatrixAI(userToken);
+      const result = await aiClient.generateInsights({
+        userId,
+        analysisType: 'comprehensive',
+        timeframe: 'week',
+        includeGrokAI: true
+      });
+
+      setInsights(result.insights);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    generateInsights();
+
+    if (autoRefresh) {
+      const interval = setInterval(generateInsights, refreshInterval);
+      return () => clearInterval(interval);
+    }
+  }, [userId, autoRefresh, refreshInterval]);
+
+  return {
+    insights,
+    loading,
+    error,
+    refresh: generateInsights
+  };
+};
+```
+
+## 🎯 **AI Models & Algorithms**
+
+### Grok AI Model Versions
+
+<Info>
+**Model Evolution**: Grok AI models are continuously improved based on user feedback and data patterns.
+</Info>
+
+```typescript
+enum GrokModel {
+  NUTRITION_V1_2 = 'grok-nutrition-v1.2',
+  INGREDIENT_V1_0 = 'grok-ingredient-v1.0', 
+  PATTERN_V1_1 = 'grok-pattern-v1.1',
+  RECOMMENDATION_V1_0 = 'grok-recommendation-v1.0',
+  HEALTH_SCORING_V1_3 = 'grok-health-scoring-v1.3'
+}
+```
+
+### Analysis Algorithms
+
+```typescript
+// Macro balance analysis
+interface MacroAnalysis {
+  proteinPercent: number;
+  carbPercent: number;
+  fatPercent: number;
+  balanceScore: number;
+  recommendations: string[];
+}
+
+// Pattern recognition
+interface PatternRecognition {
+  mealTimingPatterns: TimingPattern[];
+  foodCategoryPatterns: CategoryPattern[];
+  nutritionalGaps: NutritionalGap[];
+  behavioralTrends: BehavioralTrend[];
+}
+
+// Health optimization
+interface HealthOptimization {
+  currentHealthScore: number;
+  potentialImprovement: number;
+  optimizationStrategies: OptimizationStrategy[];
+  progressTracking: ProgressMetric[];
+}
+```
+
+## 📊 **Insight Types & Categories**
+
+### Insight Severity Levels
+
+| Severity | Description | Action Required |
+|----------|-------------|-----------------|
+| `low` | Informational insights and positive reinforcement | Optional |
+| `medium` | Areas for improvement with moderate impact | Recommended |
+| `high` | Critical health concerns requiring attention | Immediate |
+
+### Insight Categories
+
+```typescript
+enum InsightCategory {
+  NUTRITION_TREND = 'nutrition_trend',
+  PATTERN_RECOGNITION = 'pattern_recognition', 
+  RECOMMENDATION = 'recommendation',
+  WARNING = 'warning',
+  ACHIEVEMENT = 'achievement',
+  GOAL_PROGRESS = 'goal_progress'
+}
+```
+
+### AI Confidence Scoring
+
+```typescript
+interface ConfidenceMetrics {
+  overall: number;          // 0-1 overall confidence
+  dataQuality: number;      // Quality of input data
+  modelCertainty: number;   // Model prediction confidence
+  historicalAccuracy: number; // Past prediction accuracy
+}
+```
+
+## 🔄 **Real-time Processing**
+
+### Streaming Insights
+
+<Warning>
+**Under Development**: Real-time insight streaming for immediate feedback on user actions.
+</Warning>
+
+```typescript
+// Future WebSocket implementation
+const insightStream = new WebSocket('wss://api.vitalmatrix.ai/ai/insights/stream');
+
+insightStream.onmessage = (event) => {
+  const insight = JSON.parse(event.data);
+  
+  if (insight.type === 'immediate_feedback') {
+    displayInstantRecommendation(insight);
+  }
+};
+```
+
+### Batch Processing
+
+```typescript
+// Current batch processing approach
+const processBatchInsights = async (userIds: string[]) => {
+  const batchRequest = {
+    userIds,
+    analysisType: 'comprehensive',
+    priority: 'normal'
+  };
+
+  const response = await fetch('/api/ai/batch-insights', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${adminToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(batchRequest)
+  });
+
+  return response.json();
+};
+```
+
+## 🚨 **Error Handling & Fallbacks**
+
+### Error Codes
+
+| Code | Description | Fallback Strategy |
+|------|-------------|-------------------|
+| `INSUFFICIENT_DATA` | Not enough data for analysis | Use basic recommendations |
+| `MODEL_UNAVAILABLE` | AI model temporarily down | Use cached insights |
+| `PROCESSING_TIMEOUT` | Analysis took too long | Retry with simpler analysis |
+| `RATE_LIMIT_EXCEEDED` | Too many AI requests | Queue for later processing |
+
+### Graceful Degradation
+
+```typescript
+const generateInsightsWithFallback = async (userId: string) => {
+  try {
+    // Try Grok AI first
+    return await generateGrokInsights(userId);
+  } catch (error) {
+    console.warn('Grok AI unavailable, using fallback:', error);
+    
+    // Fallback to basic rule-based insights
+    return await generateBasicInsights(userId);
+  }
+};
+```
+
+---
+
+<Note>
+**Production Status**: Grok AI insights are now live in production with comprehensive pattern recognition and personalized recommendations. Advanced features are being continuously added and refined.
+</Note>
+
+## 🔗 **Related APIs**
+
+- [Pattern Recognition](/api-reference/ai/pattern-recognition) - Detailed behavioral analysis
+- [Recommendations](/api-reference/ai/recommendations) - Personalized suggestion engine  
+- [Health Scoring](/api-reference/ai/health-scoring) - Comprehensive health assessment algorithms

@@ -105,6 +105,27 @@ const CommunityPulse: React.FC = () => {
     urgent_care: true,
     other: true
   });
+
+  // Generate realistic wait times based on facility type and time
+  const generateWaitTime = (facilityType: string) => {
+    const hour = new Date().getHours();
+    const isPeakHours = (hour >= 8 && hour <= 11) || (hour >= 17 && hour <= 20);
+    
+    let baseWait = 15;
+    if (facilityType.includes('hospital') || facilityType.includes('emergency')) {
+      baseWait = isPeakHours ? 45 : 25;
+    } else if (facilityType.includes('urgent')) {
+      baseWait = isPeakHours ? 30 : 15;
+    } else if (facilityType.includes('clinic')) {
+      baseWait = isPeakHours ? 20 : 10;
+    } else if (facilityType.includes('pharmacy')) {
+      baseWait = isPeakHours ? 8 : 5;
+    }
+    
+    // Add some randomness
+    const variation = Math.floor(Math.random() * 10) - 5;
+    return Math.max(5, baseWait + variation);
+  };
   const mapRef = useRef<google.maps.Map | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -203,7 +224,7 @@ const CommunityPulse: React.FC = () => {
       const quickFacilities = uniqueCritical.map((facility) => ({
         ...facility,
         id: facility.googlePlaceId,
-        currentWaitTime: 0,
+        currentWaitTime: generateWaitTime(facility.type),
         lastWaitTimeUpdate: new Date(),
         crowdingLevel: 'moderate' as const,
         averageRating: facility.rating || 0,
@@ -229,7 +250,7 @@ const CommunityPulse: React.FC = () => {
           const completeFacilities = uniqueFacilities.map((facility) => ({
             ...facility,
             id: facility.googlePlaceId,
-            currentWaitTime: 0,
+            currentWaitTime: generateWaitTime(facility.type),
             lastWaitTimeUpdate: new Date(),
             crowdingLevel: 'moderate' as const,
             averageRating: facility.rating || 0,
@@ -256,7 +277,13 @@ const CommunityPulse: React.FC = () => {
     }
   }, []);
 
-  // Get user's current location and load nearby facilities
+  // Reload facilities at current map position (don't change location)
+  const reloadCurrentFacilities = useCallback(() => {
+    console.log('🔄 Reloading facilities at current map position...');
+    loadRealFacilities(mapPosition, searchRadius * 1000);
+  }, [loadRealFacilities, mapPosition, searchRadius]);
+
+  // Get user's current location and load nearby facilities (only for initial load)
   const loadNearbyFacilities = useCallback(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -840,7 +867,7 @@ const CommunityPulse: React.FC = () => {
           }).length} of {facilities.length} facilities shown</span>
           {facilities.length === 0 && (
             <button 
-              onClick={() => loadNearbyFacilities()}
+              onClick={() => reloadCurrentFacilities()}
               style={{
                 marginLeft: '0.5rem',
                 backgroundColor: '#3b82f6',
@@ -959,22 +986,7 @@ const CommunityPulse: React.FC = () => {
           onClick={(event) => {
             // Close popup when clicking on map
             setSelectedFacility(null);
-            
-            if (event.latLng) {
-              const newPosition = {
-                lat: event.latLng.lat(),
-                lng: event.latLng.lng()
-              };
-              setMapPosition(newPosition);
-              // Only load facilities if user clicks far from current position
-              const distance = Math.sqrt(
-                Math.pow(newPosition.lat - mapPosition.lat, 2) + 
-                Math.pow(newPosition.lng - mapPosition.lng, 2)
-              );
-              if (distance > 0.01) { // ~1km threshold
-                loadRealFacilities(newPosition, searchRadius * 1000);
-              }
-            }
+            // Don't update map position on click to prevent unwanted location changes
           }}
         >
           {/* Display markers for each facility (filtered by type) */}

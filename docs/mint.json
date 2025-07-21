@@ -68,10 +68,53 @@
     {
       "group": "⚡ API Reference",
       "pages": [
+        "api-reference/overview",
         "api-reference/authentication",
-        "api-reference/nutrition",
-        "api-reference/ai-analyze-food",
-        "api-reference/spoonacular-integration"
+        {
+          "group": "🍎 NutriLens API",
+          "pages": [
+            "api-reference/nutrilens/barcode-scan",
+            "api-reference/nutrilens/ai-analysis",
+            "api-reference/nutrilens/nutrition-data",
+            "api-reference/nutrilens/health-insights"
+          ]
+        },
+        {
+          "group": "🏥 Community Pulse API",
+          "pages": [
+            "api-reference/community/places-search",
+            "api-reference/community/facility-details",
+            "api-reference/community/reviews",
+            "api-reference/community/wait-times"
+          ]
+        },
+        {
+          "group": "👤 User Profile API",
+          "pages": [
+            "api-reference/user/profile-management",
+            "api-reference/user/health-data",
+            "api-reference/user/preferences",
+            "api-reference/user/activity-tracking"
+          ]
+        },
+        {
+          "group": "🤖 AI & Analytics",
+          "pages": [
+            "api-reference/ai/grok-insights",
+            "api-reference/ai/pattern-recognition",
+            "api-reference/ai/recommendations",
+            "api-reference/ai/health-scoring"
+          ]
+        },
+        {
+          "group": "🔗 External Integrations",
+          "pages": [
+            "api-reference/integrations/google-places",
+            "api-reference/integrations/firebase",
+            "api-reference/integrations/openfoodfacts",
+            "api-reference/integrations/daytona"
+          ]
+        }
       ]
     },
     {
@@ -95,6 +138,13 @@
       "pages": [
         "sponsors"
       ]
+    },
+    {
+      "group": "📞 Support",
+      "pages": [
+        "contact",
+        "support"
+      ]
     }
   ],
   "footerSocials": {
@@ -104,5 +154,10 @@
   "feedback": {
     "suggestEdit": true,
     "raiseIssue": true
+  },
+  "metadata": {
+    "og:title": "VitalMatrix - AI-Powered Healthcare & Nutrition Platform",
+    "og:description": "Comprehensive healthcare facility reviews and AI-powered nutrition analysis",
+    "twitter:site": "@joeproai"
   }
 }

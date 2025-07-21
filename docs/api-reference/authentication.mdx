@@ -1,194 +1,695 @@
-# Authentication API
+---
+title: "Authentication"
+description: "Secure user authentication and authorization for VitalMatrix APIs"
+---
 
-The VitalMatrix Authentication API provides endpoints for user registration, login, and session management.
+# 🔐 Authentication
 
-## Base URL
+VitalMatrix uses Firebase Authentication to provide secure, scalable user authentication with support for multiple sign-in methods and robust security features.
 
-```
-https://api.vitalmatrix.dev/v1/auth
-```
+## 🏗️ **Production Status**
 
-## Authentication Methods
+<Check>
+**Production Ready**: Firebase Authentication is fully operational with Google Sign-In and email/password authentication.
+</Check>
+
+### ✅ **Live Features**
+- Firebase Authentication with JWT tokens
+- Google Sign-In integration
+- Email/password authentication
+- Protected routes and API endpoints
+- Real-time authentication state management
+- Secure token validation
+
+## 🔑 **Authentication Methods**
 
 VitalMatrix supports the following authentication methods:
 
-- JWT-based authentication
-- OAuth 2.0 with supported providers
-- API key authentication for service-to-service calls
+### 1. **Email/Password Authentication**
+- Traditional email and password sign-up/sign-in
+- Password reset functionality
+- Email verification
 
-## Endpoints
+### 2. **Google Sign-In**
+- One-click Google authentication
+- Seamless account linking
+- Profile information auto-population
 
-### Register User
+### 3. **Firebase JWT Tokens**
+- Secure token-based authentication
+- Automatic token refresh
+- Stateless authentication for APIs
 
-```
-POST /register
-```
-
-Create a new user account.
-
-#### Request Body
-
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword123",
-  "firstName": "John",
-  "lastName": "Doe"
-}
-```
-
-#### Response
-
-```json
-{
-  "userId": "usr_123456789",
-  "email": "user@example.com",
-  "firstName": "John",
-  "lastName": "Doe",
-  "createdAt": "2025-07-17T12:34:56.789Z",
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-### Login
-
-```
-POST /login
-```
-
-Authenticate a user and retrieve tokens.
-
-#### Request Body
-
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword123"
-}
-```
-
-#### Response
-
-```json
-{
-  "userId": "usr_123456789",
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresIn": 3600
-}
-```
-
-### Refresh Token
-
-```
-POST /refresh
-```
-
-Obtain a new access token using a refresh token.
-
-#### Request Body
-
-```json
-{
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-#### Response
-
-```json
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresIn": 3600
-}
-```
-
-### Logout
-
-```
-POST /logout
-```
-
-Invalidate the current session.
-
-#### Request Headers
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-#### Response
-
-```json
-{
-  "message": "Successfully logged out"
-}
-```
-
-## OAuth Integration
-
-### Initiate OAuth Flow
-
-```
-GET /oauth/:provider
-```
-
-Start the OAuth authentication flow with a supported provider.
-
-Supported providers:
-- `google`
-- `apple`
-- `facebook`
-
-#### Query Parameters
-
-```
-redirect_uri: URL to redirect after authentication (must be whitelisted)
-```
-
-### OAuth Callback
-
-```
-GET /oauth/callback/:provider
-```
-
-Handle the OAuth callback from the provider.
-
-## Error Responses
-
-Authentication errors return appropriate HTTP status codes with descriptive messages:
-
-```json
-{
-  "error": "invalid_credentials",
-  "message": "The email or password provided is incorrect",
-  "statusCode": 401
-}
-```
-
-Common error codes:
-- `invalid_credentials`: Email or password incorrect
-- `account_locked`: Account temporarily locked due to failed attempts
-- `invalid_token`: Token has expired or is invalid
-- `insufficient_permissions`: User lacks required permissions
-
-## Implementation Example
+## 🌐 **Base URLs**
 
 ```typescript
-import { createClient } from '@vitalmatrix/api-client';
+// Firebase Authentication
+const FIREBASE_CONFIG = {
+  authDomain: "vitalmatrix-app.firebaseapp.com",
+  projectId: "vitalmatrix-app"
+};
 
-const client = createClient({
-  apiKey: 'your_api_key'
-});
-
-// Login
-const { accessToken, refreshToken } = await client.auth.login({
-  email: 'user@example.com',
-  password: 'securePassword123'
-});
-
-// Make authenticated requests
-client.setAuthToken(accessToken);
-const profile = await client.users.getProfile();
+// API Base URLs
+const API_ENDPOINTS = {
+  production: "https://vitalmatrix.joepro.ai/api",
+  vercel: "https://vitalmatrix-app.vercel.app/api",
+  local: "http://localhost:3001/api"
+};
 ```
+
+## 🔐 **Authentication Flow**
+
+### User Registration
+
+```typescript
+// Email/Password Registration
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../config/firebase';
+
+const registerUser = async (email: string, password: string) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // Get Firebase JWT token
+    const token = await user.getIdToken();
+    
+    return {
+      uid: user.uid,
+      email: user.email,
+      token,
+      success: true
+    };
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
+};
+```
+
+### User Login
+
+```typescript
+// Email/Password Login
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
+const loginUser = async (email: string, password: string) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // Get Firebase JWT token
+    const token = await user.getIdToken();
+    
+    return {
+      uid: user.uid,
+      email: user.email,
+      token,
+      success: true
+    };
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
+};
+```
+
+### Google Sign-In
+
+```typescript
+// Google Sign-In
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+
+const googleProvider = new GoogleAuthProvider();
+
+const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    
+    // Get Firebase JWT token
+    const token = await user.getIdToken();
+    
+    return {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      token,
+      success: true
+    };
+  } catch (error) {
+    throw new Error(getAuthErrorMessage(error));
+  }
+};
+```
+
+## 🎫 **JWT Token Management**
+
+### Token Structure
+
+Firebase JWT tokens contain user information and are automatically validated by Firebase:
+
+```typescript
+// Token payload structure
+interface FirebaseToken {
+  iss: string;           // Issuer (Firebase)
+  aud: string;           // Audience (Project ID)
+  auth_time: number;     // Authentication time
+  user_id: string;       // Firebase user ID
+  sub: string;           // Subject (user ID)
+  iat: number;           // Issued at
+  exp: number;           // Expires at
+  email?: string;        // User email
+  email_verified?: boolean;
+  firebase: {
+    identities: {
+      email?: string[];
+      'google.com'?: string[];
+    };
+    sign_in_provider: string;
+  };
+}
+```
+
+### Getting Authentication Headers
+
+```typescript
+// Get authentication headers for API requests
+import { getIdToken } from 'firebase/auth';
+
+export const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+  
+  const token = await getIdToken(user);
+  
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  };
+};
+
+// Make authenticated API request
+export const authenticatedRequest = async (url: string, options: RequestInit = {}) => {
+  const headers = await getAuthHeaders();
+  
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...headers,
+      ...options.headers
+    }
+  });
+};
+```
+
+### Token Refresh
+
+```typescript
+// Automatic token refresh
+import { onIdTokenChanged } from 'firebase/auth';
+
+// Listen for token changes and refresh
+onIdTokenChanged(auth, async (user) => {
+  if (user) {
+    // Get fresh token
+    const token = await user.getIdToken(true); // Force refresh
+    
+    // Update stored token
+    localStorage.setItem('firebase_token', token);
+    
+    // Update API client headers
+    updateApiClientToken(token);
+  } else {
+    // User signed out
+    localStorage.removeItem('firebase_token');
+    clearApiClientToken();
+  }
+});
+```
+
+## 🛡️ **API Authentication**
+
+### Protected API Endpoints
+
+All VitalMatrix API endpoints require Firebase authentication:
+
+```http
+GET /api/user/profile
+Authorization: Bearer <firebase_jwt_token>
+Content-Type: application/json
+```
+
+### Server-Side Token Validation
+
+```typescript
+// Vercel API function with Firebase auth
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, getApps } from 'firebase-admin/app';
+
+// Initialize Firebase Admin (server-side)
+if (!getApps().length) {
+  initializeApp({
+    projectId: process.env.FIREBASE_PROJECT_ID
+  });
+}
+
+const auth = getAuth();
+
+export const verifyToken = async (token: string) => {
+  try {
+    const decodedToken = await auth.verifyIdToken(token);
+    return {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      verified: true
+    };
+  } catch (error) {
+    throw new Error('Invalid or expired token');
+  }
+};
+
+// API endpoint with authentication
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
+    // Extract token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization header required' });
+    }
+    
+    const token = authHeader.split('Bearer ')[1];
+    
+    // Verify token
+    const user = await verifyToken(token);
+    
+    // Process authenticated request
+    // ... your API logic here
+    
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    res.status(401).json({ error: 'Authentication failed' });
+  }
+}
+```
+
+## 🔒 **Protected Routes**
+
+### React Route Protection
+
+```typescript
+// ProtectedRoute component
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+  
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+  
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Usage in App.tsx
+import { Routes, Route } from 'react-router-dom';
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      
+      {/* Protected routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <UserDashboard />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <UserProfile />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/nutrilens" element={
+        <ProtectedRoute>
+          <NutriLens />
+        </ProtectedRoute>
+      } />
+    </Routes>
+  );
+}
+```
+
+### Authentication Context
+
+```typescript
+// AuthContext.tsx
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { 
+  User, 
+  onAuthStateChanged, 
+  signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail
+} from 'firebase/auth';
+import { auth } from '../config/firebase';
+
+interface AuthContextType {
+  currentUser: User | null;
+  login: (email: string, password: string) => Promise<UserCredential>;
+  signup: (email: string, password: string) => Promise<UserCredential>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const signup = (email: string, password: string) => {
+    return createUserWithEmailAndPassword(auth, email, password);
+  };
+
+  const login = (email: string, password: string) => {
+    return signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const logout = () => {
+    return signOut(auth);
+  };
+
+  const resetPassword = (email: string) => {
+    return sendPasswordResetEmail(auth, email);
+  };
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const value = {
+    currentUser,
+    login,
+    signup,
+    logout,
+    resetPassword,
+    loading
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+};
+```
+
+## 🚨 **Error Handling**
+
+### Authentication Error Messages
+
+```typescript
+// Error handling utility
+export const getAuthErrorMessage = (error: any): string => {
+  switch (error.code) {
+    case 'auth/user-not-found':
+      return 'No account found with this email address.';
+    case 'auth/wrong-password':
+      return 'Incorrect password. Please try again.';
+    case 'auth/email-already-in-use':
+      return 'An account with this email already exists.';
+    case 'auth/weak-password':
+      return 'Password should be at least 6 characters long.';
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/user-disabled':
+      return 'This account has been disabled.';
+    case 'auth/too-many-requests':
+      return 'Too many failed attempts. Please try again later.';
+    case 'auth/network-request-failed':
+      return 'Network error. Please check your connection.';
+    case 'auth/popup-closed-by-user':
+      return 'Sign-in popup was closed before completion.';
+    case 'auth/popup-blocked':
+      return 'Sign-in popup was blocked by the browser.';
+    default:
+      return 'An unexpected error occurred. Please try again.';
+  }
+};
+```
+
+### API Error Responses
+
+```json
+// Authentication Error
+{
+  "success": false,
+  "error": "UNAUTHORIZED",
+  "message": "Authentication required",
+  "code": 401
+}
+
+// Invalid Token Error
+{
+  "success": false,
+  "error": "INVALID_TOKEN",
+  "message": "Token has expired or is invalid",
+  "code": 401
+}
+
+// Insufficient Permissions Error
+{
+  "success": false,
+  "error": "FORBIDDEN",
+  "message": "Insufficient permissions to access this resource",
+  "code": 403
+}
+```
+
+## 💻 **Client Implementation Examples**
+
+### Login Component
+
+```typescript
+// Login.tsx
+import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { getAuthErrorMessage } from '../utils/authErrors';
+
+export const Login: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setError('');
+      setLoading(true);
+      await login(email, password);
+      navigate('/dashboard');
+    } catch (error) {
+      setError(getAuthErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to VitalMatrix
+          </h2>
+        </div>
+        
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <label htmlFor="email" className="sr-only">Email address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="relative block w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Email address"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="password" className="sr-only">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="relative block w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Password"
+            />
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </div>
+          
+          <div className="text-center">
+            <Link to="/register" className="text-indigo-600 hover:text-indigo-500">
+              Don't have an account? Sign up
+            </Link>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+```
+
+### API Service with Authentication
+
+```typescript
+// apiService.ts
+import { getAuth } from 'firebase/auth';
+
+class ApiService {
+  private baseUrl: string;
+  private auth = getAuth();
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private async getAuthHeaders(): Promise<Record<string, string>> {
+    const user = this.auth.currentUser;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const token = await user.getIdToken();
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  }
+
+  async get<T>(endpoint: string): Promise<T> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'GET',
+      headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async post<T>(endpoint: string, data: any): Promise<T> {
+    const headers = await this.getAuthHeaders();
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  // User profile methods
+  async getUserProfile() {
+    return this.get('/user/profile');
+  }
+
+  async updateUserProfile(profileData: any) {
+    return this.post('/user/profile', profileData);
+  }
+
+  // Nutrition methods
+  async saveNutritionScan(scanData: any) {
+    return this.post('/nutrition/scan', scanData);
+  }
+
+  async getUserScans() {
+    return this.get('/nutrition/scans');
+  }
+}
+
+// Export singleton instance
+export const apiService = new ApiService(
+  process.env.NODE_ENV === 'production' 
+    ? 'https://vitalmatrix.joepro.ai/api'
+    : 'http://localhost:3001/api'
+);
+```
+
+---
+
+<Note>
+**Production Status**: Firebase Authentication is fully operational with Google Sign-In, email/password authentication, and comprehensive security rules deployed.
+</Note>
+
+## 🔗 **Related Documentation**
+
+- [User Profile API](/api-reference/user/profile) - User data management
+- [Firebase Integration](/api-reference/integrations/firebase) - Backend services
+- [API Overview](/api-reference/overview) - Complete API reference
+- [NutriLens API](/api-reference/nutrilens/barcode-scan) - Nutrition scanning with auth

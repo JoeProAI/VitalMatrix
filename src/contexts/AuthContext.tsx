@@ -3,6 +3,8 @@ import {
   User,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged
 } from 'firebase/auth';
@@ -14,6 +16,7 @@ interface AuthContextType {
   currentUser: User | null;
   signup: (email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -84,6 +87,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('✅ User logged in:', userCredential.user.uid);
     } catch (error) {
       console.error('🚨 Login error:', error);
+      throw error;
+    }
+  };
+
+  const loginWithGoogle = async (): Promise<void> => {
+    try {
+      console.log('🔐 Starting Google Sign-In...');
+      const provider = new GoogleAuthProvider();
+      
+      // Optional: Add additional scopes if needed
+      provider.addScope('profile');
+      provider.addScope('email');
+      
+      const userCredential = await signInWithPopup(auth, provider);
+      const user = userCredential.user;
+      console.log('✅ Google Sign-In successful:', user.uid);
+      
+      // Check if this is a new user and create profile if needed
+      const isNewUser = userCredential.user.metadata.creationTime === userCredential.user.metadata.lastSignInTime;
+      
+      if (isNewUser) {
+        console.log('👤 New Google user - creating profile...');
+        
+        // Store basic user data in Firestore
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          provider: 'google',
+          createdAt: serverTimestamp(),
+        });
+        
+        // Create full user profile
+        await createUserProfile(user);
+        console.log('✅ Google user profile created');
+      }
+    } catch (error: any) {
+      console.error('🚨 Google Sign-In error:', error);
+      
+      // Handle specific Google Sign-In errors
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Sign-in was cancelled');
+      } else if (error.code === 'auth/popup-blocked') {
+        throw new Error('Pop-up was blocked by browser. Please allow pop-ups and try again.');
+      }
+      
       throw error;
     }
   };
@@ -190,6 +239,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     currentUser,
     signup,
     login,
+    loginWithGoogle,
     logout,
     loading
   };

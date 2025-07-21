@@ -9,6 +9,15 @@ const HeroSection = () => {
   
   return (
     <section className="relative pt-28 pb-20 sm:pt-36 sm:pb-28 px-4 sm:px-6 lg:px-8">
+      {/* Demo Content Notice */}
+      <div className="fixed top-20 left-4 right-4 z-50 max-w-4xl mx-auto">
+        <div className="bg-yellow-500/90 backdrop-blur-sm text-black p-3 rounded-lg shadow-lg border border-yellow-400">
+          <p className="text-center font-bold text-sm">
+            🚨 DEMO APPLICATION: All content, reviews, and data shown are for demonstration purposes only
+          </p>
+        </div>
+      </div>
+      
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Hero Content */}
